@@ -115,7 +115,7 @@ for (i in group) {
     num_elements <- length(num)
     #作图
     plotpath <- paste("E:/B组数据备份(4.29)/单细胞结果/GVis热图/", sep = "")
-    png(paste0(plotpath,"diff_gene_GO_",i,"_",j,".png",sep = ""),width = 30,height = 10, units = "in", res = 800)
+    png(paste0(plotpath,"diff_gene_GO_",i,"_",j,".png",sep = ""),width = 30,height = 14, units = "in", res = 800)
     visCluster(object = st.data,
                plot.type = "both",
                column_names_rot = 45,
