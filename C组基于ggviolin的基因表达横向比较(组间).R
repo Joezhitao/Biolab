@@ -38,3 +38,27 @@ for (i in mouse_gene) {
   ggsave(path2,width = 6,height = 6)
   
 }
+
+#再基因集上跑
+gene_name = paste("肝细胞组间","_","衰老基因", sep = "")
+pbmc_hep <- PercentageFeatureSet(sce,features = gene,col.name = gene_name)
+
+factors <- c(levels(pbmc_hep@meta.data$group))
+combinations <- combn(factors, 2) 
+combinations_list <- split(combinations, rep(1:ncol(combinations), each = nrow(combinations)))
+library(ggpubr)
+my9color <- c('#5470c6','#91cc75','#fac858','#ee6666','#73c0de', '#f9910e', '#f2777a', '#6c5ce7', '#2d3748')
+path = paste(filepath,"组间横向比较_",gene_name,".png", sep = "")
+p.percentage <- ggviolin(pbmc_hep@meta.data, x = "group", y = gene_name,
+                         color = "group",add = 'mean_sd',fill = 'group',
+                         add.params = list(color = "black")) + 
+  stat_compare_means(comparisons = combinations_list,label = "p.signif") + 
+  scale_color_manual(values = my9color) + 
+  scale_fill_manual(values = my9color) +
+  theme(axis.text.x.bottom = element_text(angle = 90,vjust = 0.5,hjust = 1)) #+ 
+#ylim(-0.2, 0.1) +
+NoLegend() + labs(x = '')
+ggsave(path,width = 8,height = 8)
+path2 = paste(filepath,"UAMP_",gene_name,".png", sep = "")
+p2 <- FeaturePlot(pbmc_hep,gene_name)
+ggsave(path2,width = 6,height = 6)
