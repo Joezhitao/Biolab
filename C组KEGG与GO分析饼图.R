@@ -85,7 +85,7 @@ emapplot(data_KEGG, pie="count", cex_category=5, layout="kk")
 dev.off()
 
 #for循环跑
-sample = c("Cd15L","Cd15R")
+sample = c("Cd30L","Cd30R")
 for (i in sample) {
   sample_b <- setdiff(sample, i)
   combined_table <- data.frame() # 在循环外部创建一个空的数据框
