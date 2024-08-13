@@ -152,3 +152,26 @@ for (i in sample) {
   print(goplot)
   dev.off()
 }
+
+#for循环保存高变基因
+gofile <- paste("E:/B组数据备份(4.29)/单细胞结果/C组Go/",'C_group', sep = "")
+sample = c("Cd15L","Cd15R")
+for (i in sample) {
+  sample_b <- setdiff(sample, i)
+  combined_table <- data.frame() # 在循环外部创建一个空的数据框
+  
+  for (j in sample_b) {
+    cell_pbmc <- FindMarkers(pbmc, ident.1 = i, ident.2 = j, group.by = "group",
+                             logfc.threshold = 0.25, min.pct = 0.1)
+    cell_pbmc <- cell_pbmc %>% 
+      rownames_to_column(var = "gene")
+    
+    cell_pbmc$group <- i # 将当前的 i 值赋给 cell_pbmc 的 group 列
+    
+    combined_table <- bind_rows(combined_table, cell_pbmc) # 将当前子集的数据添加到 combined_table 中
+  }
+  #分组，选择上调基因
+  df_sig <- combined_table
+  df_sig <- subset(df_sig,p_val_adj<0.05&(avg_log2FC > 0.1))
+  write.xlsx(df_sig, file = paste(gofile, "combined_",i,".xlsx", sep = "") , row.names = F)
+}

@@ -8,6 +8,12 @@ set.seed(123456)
 
 #文件保存路径
 filepath = "E:/B组数据备份(4.29)/单细胞结果/横向比较/组间/"
+genepath = 'E:/B组数据备份(4.29)/横向比较基因/'
+#读取气泡图基因
+gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+gene <- gene$gene
+#选取pbmc中表达的基因进行气泡图绘制
+gene <- gene[gene %in% rownames(pbmc)]
 sce <- pbmc
 #每一个基因上跑
 mouse_gene <- c("Mki67")
