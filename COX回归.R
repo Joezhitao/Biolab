@@ -31,12 +31,12 @@ rownames(data)=substr(rownames(data),1,12)
 
 #读入生存数据
 cli <- read.xlsx("time_CORD.xlsx",sheetIndex = 1,header = T,encoding = "UTF-8")
-
+#write.table(cli,'time_CORD.txt', sep="\t", quote=F, row.names = F)
 # 将首列设置为行名
 row.names(cli) <- cli[[1]]  # 将首列的值赋给行名
 cli <- cli[-1]               # 删除首列
 
-#cli=read.table("time_LUSC.txt", header=T, sep="\t", check.names=F, row.names=1)
+#cli=read.table("time_CORD.txt", header=T, sep="\t", check.names=F, row.names=1)
 #生存时间以年为单位
 cli$time=cli$time/365
 

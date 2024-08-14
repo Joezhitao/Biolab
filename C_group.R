@@ -162,6 +162,25 @@ p4 <- DimPlot(pbmc, reduction = "umap", group.by = "seurat_clusters",   pt.size=
 )
 
 plotpath <- paste("E:/B组数据备份(4.29)/单细胞结果/亚群/", sep = "")
-png(paste0(plotpath,"UMAP_",".png",sep = ""),width = 6,height = 6, units = "in", res = 800)
+png(paste0(plotpath,"UMAP_鉴定",".png",sep = ""),width = 6,height = 6, units = "in", res = 800)
 p4
 dev.off()
+
+#亚群命名
+new.cluster.ids <- c("Hepatocytes_1","Hepatocytes_2","Hepatocytes_3","Hepatocytes_1","Hepatocytes_2")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc,new.cluster.ids)
+pbmc@meta.data$cluster <- pbmc@meta.data$seurat_clusters
+levels(pbmc@meta.data$seurat_clusters) <- new.cluster.ids
+levels(pbmc@meta.data$seurat_clusters)
+#亚群差异基因
+combined_markers <- FindAllMarkers(object = pbmc, 
+                                   only.pos = TRUE,
+                                   logfc.threshold = 0.25)
+
+all <- combined_markers %>% group_by(cluster)
+
+write.csv(all, 
+          file = "E:/B组数据备份(4.29)/单细胞结果/亚群//combined_all_markers(resolution=0.1).csv", 
+          quote = FALSE, 
+          row.names = FALSE)
