@@ -68,7 +68,7 @@ outTab$change = ifelse(outTab$fdr < 0.05 & abs(outTab$logFC) >= 1,
                        'Stable')
 #热图
 #设置展示基因的数目
-geneNum=200     
+geneNum=50
 outDiff=outDiff[order(as.numeric(as.vector(outDiff$logFC))),]
 diffGeneName=as.vector(outDiff[,1])
 diffLength=length(diffGeneName)
@@ -82,7 +82,7 @@ hmExp=log2(data[hmGene,]+0.01)
 Type=c(rep("Normal",conNum),rep("Tumor",treatNum))
 names(Type)=colnames(data)
 Type=as.data.frame(Type)
-pdf(file="heatmap.pdf", width=10, height=25)
+pdf(file="heatmap_CRC_Top50.pdf", width=10, height=8)
 pheatmap(hmExp, 
          annotation=Type, 
          color = colorRampPalette(c(rep("blue",5), "white", rep("red",5)))(50),
@@ -108,7 +108,7 @@ abline(v=0,lty=2,lwd=3)
 dev.off()
 
 
-geneList0 <- c('TUBA1C',"ULBP2")
+geneList0 <- c('TUBA1C')
 geneList <- outTab[geneList0,]
 
 library('ggplot2')
