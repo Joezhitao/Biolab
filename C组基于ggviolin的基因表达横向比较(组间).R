@@ -46,7 +46,7 @@ for (i in mouse_gene) {
 }
 
 #再基因集上跑
-gene_name = paste("肝细胞组间","_","衰老基因", sep = "")
+gene_name = paste("肝细胞组间","_","李丽清sb", sep = "")
 pbmc_hep <- PercentageFeatureSet(sce,features = gene,col.name = gene_name)
 
 factors <- c(levels(pbmc_hep@meta.data$group))
