@@ -170,3 +170,204 @@ p + geom_label_repel(data = geneList1,
 )
 dev.off()
 
+#####limma####
+
+#加载包
+library(limma)
+library(pheatmap)
+library(stringr)
+library(edgeR)
+#设置工作目录
+setwd("E:/CORD/DEG")
+
+#读取输入文件
+data=read.table("TCGA_CORD_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+#转化为matrix
+dimnames=list(rownames(data), colnames(data))
+data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+#去除低表达的基因
+data=data[rowMeans(data)>1,]
+
+#正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+group=sapply(strsplit(group,""), "[", 1)
+#将2变为1
+group=gsub("2", "1", group)
+#获取正常及肿瘤组样本数目
+conNum=length(group[group==1])
+treatNum=length(group[group==0])
+Type=c(rep(1,conNum), rep(2,treatNum))
+#根据正常和肿瘤排序
+data1 = data[,group == 1]
+data2 = data[,group == 0]
+data = cbind(data1,data2)
+#设置分组信息
+Type = factor(Type)
+design <- model.matrix(~0+Type)
+rownames(design) = colnames(data)
+colnames(design) <- levels(Type)
+
+#创建对象
+DGElist <- DGEList( counts = data, group = Type )
+#过滤掉cpm小于等于1的基因
+keep_gene <- rowSums( cpm(DGElist) > 1 ) >= 2 # 自定义
+table(keep_gene)
+#生成DGEList对象
+DGElist <- DGElist[keep_gene, , keep.lib.sizes = FALSE ]
+#计算比例因子以将原始库大小转换为有效库大小。
+DGElist <- calcNormFactors( DGElist )
+#转换logCPM
+v <- voom(DGElist, design, plot = TRUE, normalize = "quantile")
+#非线性最小二乘法
+fit <- lmFit(v, design)
+colnames(design)=c("normal","tumor")
+#构建比较矩阵
+cont.matrix <- makeContrasts(contrasts = c('tumor-normal'), levels = design)
+#线性拟合模型构建
+fit2 <- contrasts.fit(fit, cont.matrix)
+#用经验贝叶斯调整t-test中方差的部分
+fit2 <- eBayes(fit2)
+nrDEG_limma_voom = topTable(fit2, coef = 'tumor-normal', n = Inf)
+nrDEG_limma_voom = na.omit(nrDEG_limma_voom)
+head(nrDEG_limma_voom)
+
+#筛选标准
+padj = 0.05
+logFC = 1
+#筛选
+outDiff = nrDEG_limma_voom[(nrDEG_limma_voom$adj.P.Val < padj &
+                              (nrDEG_limma_voom$logFC>logFC | nrDEG_limma_voom$logFC<(-logFC))),]
+outDiff = outDiff[order(outDiff$logFC),]
+write.table(data.frame(ID=rownames(outDiff),outDiff),file="TCGA.diff.limma.txt",sep="\t",row.names=F,quote=F)
+
+#####edgeR#####
+
+#加载包
+library(limma)
+library(pheatmap)
+library(stringr)
+library(edgeR)
+#设置工作目录
+setwd("E:/CORD/DEG")
+
+#读取输入文件
+data=read.table("TCGA_CORD_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+#转化为matrix
+dimnames=list(rownames(data), colnames(data))
+data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+#去除低表达的基因
+data=data[rowMeans(data)>1,]
+
+#正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+group=sapply(strsplit(group,""), "[", 1)
+#将2变为1
+group=gsub("2", "1", group)
+#获取正常及肿瘤组样本数目
+conNum=length(group[group==1])
+treatNum=length(group[group==0])
+Type=c(rep(1,conNum), rep(2,treatNum))
+#根据正常和肿瘤排序
+data1 = data[,group == 1]
+data2 = data[,group == 0]
+data = cbind(data1,data2)
+#分组矩阵
+Type = factor(Type)
+design <- model.matrix(~0+Type)
+rownames(design) = colnames(data)
+colnames(design) <- levels(Type)
+
+#差异表达矩阵
+DGElist <- DGEList( counts = data, group = Type)
+keep_gene <- rowSums( cpm(DGElist) > 1 ) >= 2 ## 自定义
+table(keep_gene)
+DGElist <- DGElist[ keep_gene, , keep.lib.sizes = FALSE ]
+DGElist <- calcNormFactors( DGElist )
+DGElist <- estimateGLMCommonDisp(DGElist, design)
+DGElist <- estimateGLMTrendedDisp(DGElist, design)
+DGElist <- estimateGLMTagwiseDisp(DGElist, design)
+fit <- glmFit(DGElist, design)
+results <- glmLRT(fit, contrast = c(-1, 1))
+nrDEG_edgeR <- topTags(results, n = nrow(DGElist))
+nrDEG_edgeR <- as.data.frame(nrDEG_edgeR)
+head(nrDEG_edgeR)
+
+#筛选
+padj = 0.05
+logFC= 1
+outdiff  = nrDEG_edgeR[(nrDEG_edgeR$FDR < padj &
+                          (nrDEG_edgeR$logFC>logFC | nrDEG_edgeR$logFC<(-logFC))),]
+write.table(data.frame(ID=rownames(outdiff),outdiff),file="TCGA.diff.edgeR.txt",sep="\t",row.names=F,quote=F)
+
+#####DESeq2#####
+
+#加载包
+library(limma)
+library(pheatmap)
+library(stringr)
+library(DESeq2)
+#设置工作目录
+setwd("E:/CORD/DEG")
+
+#读取输入文件
+data=read.table("TCGA_CORD_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+#转化为matrix
+dimnames=list(rownames(data), colnames(data))
+data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+#去除低表达的基因
+data=data[rowMeans(data)>1,]
+
+#正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+group=sapply(strsplit(group,""), "[", 1)
+#将2变为1
+group=gsub("2", "1", group)
+#获取正常及肿瘤组样本数目
+conNum=length(group[group==1])
+treatNum=length(group[group==0])
+Type=c(rep(1,conNum), rep(2,treatNum))
+#根据正常和肿瘤排序
+data1 = data[,group == 1]
+data2 = data[,group == 0]
+data = cbind(data1,data2)
+
+#分组矩阵
+condition = factor(Type)
+coldata <- data.frame(row.names = colnames(data), condition)
+dds <- DESeqDataSetFromMatrix(countData = data,
+                              colData = coldata,
+                              design = ~condition)
+View(dds)
+dds$condition
+# 指定哪一组作为对照组
+dds$condition<- relevel(dds$condition, ref = "1")
+#差异表达矩阵
+dds <- DESeq(dds)
+allDEG2 <- as.data.frame(results(dds))
+
+#筛选
+padj = 0.05
+logFC= 1
+outdiff = allDEG2[(allDEG2$padj < padj &
+                     (allDEG2$log2FoldChange>logFC | allDEG2$log2FoldChange<(-logFC))),]
+write.table(data.frame(ID=rownames(outdiff),outdiff),file="TCGA.diff.DESeq2.txt",sep="\t",row.names=F,quote=F)
+
+#####VennDiagram####
+
+#加载
+library(VennDiagram)
+#设置工作目录
+setwd("E:/CORD/DEG")
+#读取
+data=read.table("TCGA.diff.Wilcoxon.txt", header=T, sep="\t", check.names=F,row.names = 1)
+Wilcoxon = rownames(data)
+data=read.table("TCGA.diff.limma.txt", header=T, sep="\t", check.names=F,row.names = 1)
+limma = rownames(data)
+data=read.table("TCGA.diff.edgeR.txt", header=T, sep="\t", check.names=F,row.names = 1)
+edgeR = rownames(data)
+data=read.table("TCGA.diff.DESeq2.txt", header=T, sep="\t", check.names=F,row.names = 1)
+DESeq2 = rownames(data)
+
+#画图
+venn.diagram(x = list('edgeR' = edgeR,'limma' = limma,'DESeq2' = DESeq2,'Wilcoxon' = Wilcoxon),
+             filename = 'VN.png',fill = c("dodgerblue", "goldenrod1", "darkorange1","green"))
