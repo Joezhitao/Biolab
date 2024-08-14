@@ -20,6 +20,9 @@ group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
 group=sapply(strsplit(group,""), "[", 1)
 #将2变为1
 group=gsub("2", "1", group)
+view(group)
+#统计group中0和1的数量
+table(group)
 #获取正常及肿瘤组样本数目
 conNum=length(group[group==1])
 treatNum=length(group[group==0])
@@ -105,7 +108,7 @@ abline(v=0,lty=2,lwd=3)
 dev.off()
 
 
-geneList0 <- c('TUBA1C')
+geneList0 <- c('TUBA1C',"ULBP2")
 geneList <- outTab[geneList0,]
 
 library('ggplot2')
