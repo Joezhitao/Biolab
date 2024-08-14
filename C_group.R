@@ -155,11 +155,12 @@ pbmc <- pbmc %>%
 filepath <- paste("E:/B组数据备份(4.29)/C组亚群样本//Hepatocytes",".RDS", sep = "")
 saveRDS(pbmc, file= filepath)
 
-
+pbmc <- FindClusters(pbmc,resolution = 0.2)
 p4 <- DimPlot(pbmc, reduction = "umap", group.by = "seurat_clusters",   pt.size=0.5, label = TRUE,repel = TRUE)+theme(
   axis.line = element_blank(),
   axis.ticks = element_blank(),axis.text = element_blank()
 )
+
 plotpath <- paste("E:/B组数据备份(4.29)/单细胞结果/亚群/", sep = "")
 png(paste0(plotpath,"UMAP_",".png",sep = ""),width = 6,height = 6, units = "in", res = 800)
 p4
