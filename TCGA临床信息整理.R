@@ -7,7 +7,7 @@ library("tinyarray")
 setwd("E:/CORD/clinic")
 
 #设置一个目录
-dir="E:/CORD/clinic/gdc_download_20240811_175412.189530"      
+dir="E:/CORD/clinic/gdc_download_20240814_142022.604604"      
 
 #获取每个样本所在位置
 all_fiels=list.files(path = dir ,pattern='*.xml$',recursive=T)##导入文件

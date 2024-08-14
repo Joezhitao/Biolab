@@ -145,9 +145,15 @@ pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% cluster]#抽组
 pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
 
 pc.num=1:30
-pbmc <- pbmc %>% 
+pbmc <- pbmc %>%
+  SCTransform() %>%
+  RunPCA(verbose = F) %>%
+  RunUMAP(dims = pc.num, verbose=FALSE) %>%
   FindNeighbors(reduction = "harmony", dims = pc.num) %>% 
   FindClusters(resolution = 0.1)
+
+filepath <- paste("E:/B组数据备份(4.29)/C组亚群样本//Hepatocytes",".RDS", sep = "")
+saveRDS(pbmc, file= filepath)
 
 
 p4 <- DimPlot(pbmc, reduction = "umap", group.by = "seurat_clusters",   pt.size=0.5, label = TRUE,repel = TRUE)+theme(
