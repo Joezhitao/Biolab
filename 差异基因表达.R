@@ -7,7 +7,6 @@ library(ggVolcano)
 #设置工作目录
 setwd("E:/CORD/DEG")
 
-
 #读取输入文件
 data=read.table("TCGA_CORD_TPM.txt", header=T, sep="\t", check.names=F,row.names = 1)
 #转化为matrix
@@ -59,10 +58,14 @@ outDiff=outTab[( abs(as.numeric(as.vector(outTab$logFC)))>logFCfilter &
                    as.numeric(as.vector(outTab$fdr))<fdrFilter),]
 write.table(outDiff,file="TCGA.diff.Wilcoxon.txt",sep="\t",row.names=F,quote=F)
 
+outTab$logFC=as.numeric(as.vector(outTab$logFC))
 
+outTab$change = ifelse(outTab$fdr < 0.05 & abs(outTab$logFC) >= 1, 
+                       ifelse(outTab$logFC> 1 ,'Up','Down'),
+                       'Stable')
 #热图
 #设置展示基因的数目
-geneNum=50     
+geneNum=200     
 outDiff=outDiff[order(as.numeric(as.vector(outDiff$logFC))),]
 diffGeneName=as.vector(outDiff[,1])
 diffLength=length(diffGeneName)
@@ -76,7 +79,7 @@ hmExp=log2(data[hmGene,]+0.01)
 Type=c(rep("Normal",conNum),rep("Tumor",treatNum))
 names(Type)=colnames(data)
 Type=as.data.frame(Type)
-pdf(file="heatmap.pdf", width=10, height=6.5)
+pdf(file="heatmap.pdf", width=10, height=25)
 pheatmap(hmExp, 
          annotation=Type, 
          color = colorRampPalette(c(rep("blue",5), "white", rep("red",5)))(50),
@@ -100,3 +103,67 @@ diffSub=subset(outTab, fdr<fdrFilter & as.numeric(as.vector(logFC))<(-logFCfilte
 points(as.numeric(as.vector(diffSub$logFC)), -log10(diffSub$fdr), pch=20, col="green",cex=1.5)
 abline(v=0,lty=2,lwd=3)
 dev.off()
+
+
+geneList0 <- c('TUBA1C')
+geneList <- outTab[geneList0,]
+
+library('ggplot2')
+
+rownames(outTab) <- outTab$gene
+
+sum(is.na(outTab$logFC))  # 检查 logFC 列中有多少个 NA 值
+sum(is.na(outTab$fdr))    # 检查 fdr 列中有多少个 NA 值
+sum(is.na(outTab$change)) # 检查 change 列中有多少个 NA 值
+
+outTab$logFC[is.na(outTab$logFC)] <- 0  # 将 logFC 列中的 NA 值替换为 0
+outTab$fdr[is.na(outTab$fdr)] <- 1      # 将 fdr 列中的 NA 值替换为 1
+
+
+outTab <- na.omit(outTab)
+p <- ggplot(# 数据、映射、颜色
+  outTab, aes(x = logFC, y = -log10(fdr), colour=change)) +
+  geom_point(alpha=0.5, size=3.5) +
+  scale_color_manual(values=c("#546de5","#d2dae2","#ff4757"))+
+  #突出表示差异基因
+  geom_point(data=geneList,aes(x = logFC, y = -log10(fdr)),colour="yellow",size=3.5)+
+  #辅助线
+  geom_vline(xintercept=c(-1,1),lty=3,col="black",lwd=0.8) +
+  geom_hline(yintercept = -log10(0.05),lty=3,col="black",lwd=0.8) +
+  labs(x="log2(fold change)",y="-log10 (p-value)")+   # 坐标轴# 坐标轴和图标题title="Volcano plot",
+  theme_bw()+    #去除背景色
+  theme(panel.grid = element_blank())+  #去除网格线
+  #xlim(-2, 2)+   #设置坐标轴范围
+  #图例
+  theme(plot.title = element_text(hjust = 0.5,size=24), 
+        legend.position="bottom", 
+        legend.title = element_blank(),
+        legend.text=element_text(size=18),
+        legend.key.size = unit(1, 'cm'),
+        legend.background = element_rect(fill="gray90", linetype="solid",colour ="gray"),
+        axis.title.x =element_text(size=18), 
+        axis.title.y=element_text(size=18),
+        axis.text=element_text(size=14,face = "bold"))
+p
+
+#火山
+pdf(file="vol.pdf", width=5, height=5)
+print(p)
+dev.off()
+
+#标记出5个基因的label
+geneList1 <- outTab[rownames(outTab) %in% geneList0,]
+geneList1 <- subset(geneList1, select = -change)
+geneList1$label <- rownames(geneList1)
+
+pdf("hotplot.pdf", width = 8, height = 10)
+library(ggrepel)
+p + geom_label_repel(data = geneList1, 
+                     aes(x = logFC, y = -log10(fdr), label = label),
+                     size = 4,color="black",
+                     box.padding = unit(0.4, "lines"), 
+                     segment.color = "black",   #连线的颜色
+                     segment.size = 0.4,  #连线的粗细
+)
+dev.off()
+
