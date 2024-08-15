@@ -230,7 +230,10 @@ fit2 <- eBayes(fit2)
 nrDEG_limma_voom = topTable(fit2, coef = 'tumor-normal', n = Inf)
 nrDEG_limma_voom = na.omit(nrDEG_limma_voom)
 head(nrDEG_limma_voom)
+#保存全部计算的基因
+nrDEG_limma_voom$gene <- rownames(nrDEG_limma_voom)
 
+write.table(nrDEG_limma_voom,file="TCGA.all.limma.txt",sep="\t",row.names=F,quote=F)
 #筛选标准
 padj = 0.05
 logFC = 1
