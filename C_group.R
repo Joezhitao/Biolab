@@ -173,6 +173,11 @@ pbmc <- RenameIdents(pbmc,new.cluster.ids)
 pbmc@meta.data$cluster <- pbmc@meta.data$seurat_clusters
 levels(pbmc@meta.data$seurat_clusters) <- new.cluster.ids
 levels(pbmc@meta.data$seurat_clusters)
+
+#分组排序
+cluster_order <- c("Ad1R","Cd1L","Cd1R","Cd15L","Cd15R","Cd30L","Cd30R")
+pbmc@meta.data$group <- factor(pbmc@meta.data$group, levels = cluster_order)
+
 #亚群差异基因
 combined_markers <- FindAllMarkers(object = pbmc, 
                                    only.pos = TRUE,
@@ -184,3 +189,42 @@ write.csv(all,
           file = "E:/B组数据备份(4.29)/单细胞结果/亚群//combined_all_markers(resolution=0.1).csv", 
           quote = FALSE, 
           row.names = FALSE)
+
+#细胞比例
+#细胞比例
+levels(pbmc@meta.data$group)
+pbmc$celltype <- Idents(pbmc)
+group_b = levels(pbmc@meta.data$group)
+
+# 翻转group_b的排序
+group_c = rev(group_b)
+
+# 查看翻转后的结果
+print(group_c)
+#随机生成14个色彩鲜明的颜色
+library(RColorBrewer)
+colors = brewer.pal(14, "Set3")#集合只有12个颜色
+
+cluster_id <- levels(pbmc)
+theme_set(theme_cowplot())
+result <- setNames( colors,cluster_id)
+print(result)
+
+pbmc@meta.data$celltype <- ordered(pbmc@meta.data$celltype, 
+                                   levels = cluster_id)
+cell <- subset(pbmc, subset = celltype %in% cluster_id)
+cell <- ScaleData(cell)
+cell_counts <- FetchData(cell, vars = c("celltype","group","orig.ident")) %>%
+  mutate(group = factor(group, levels = group_c))
+cell_counts_tbl <- cell_counts %>%
+  dplyr::count(celltype,group)
+write_csv(cell_counts_tbl, path = "E:/B组数据备份(4.29)/单细胞结果/细胞比例/cell_counts_tbl.csv")
+#比例图
+png("E:/B组数据备份(4.29)/单细胞结果/细胞比例/C组细胞比例(7样本).tiff",units = "in",width = 20,height = 8,res = 600)
+ggplot(data = cell_counts, aes(x = group, fill = celltype)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = result) +
+  coord_flip() +
+  scale_y_reverse()+theme(legend.text = element_text(size = 20),text=element_text(size=20),
+                          axis.text = element_text(size=15))
+dev.off()
