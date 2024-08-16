@@ -8,6 +8,12 @@ set.seed(123456)
 
 #文件保存路径
 filepath = "E:/B组数据备份(4.29)/单细胞结果/横向比较/组间/"
+genepath = 'E:/B组数据备份(4.29)/横向比较基因/'
+#读取气泡图基因
+gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+gene <- gene$gene
+#选取pbmc中表达的基因进行气泡图绘制
+gene <- gene[gene %in% rownames(pbmc)]
 sce <- pbmc
 #每一个基因上跑
 mouse_gene <- c("Mki67")
@@ -40,7 +46,7 @@ for (i in mouse_gene) {
 }
 
 #再基因集上跑
-gene_name = paste("肝细胞组间","_","衰老基因", sep = "")
+gene_name = paste("肝细胞组间","_","李丽清sb", sep = "")
 pbmc_hep <- PercentageFeatureSet(sce,features = gene,col.name = gene_name)
 
 factors <- c(levels(pbmc_hep@meta.data$group))
