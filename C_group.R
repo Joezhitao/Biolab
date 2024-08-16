@@ -153,6 +153,7 @@ pbmc <- pbmc %>%
   FindClusters(resolution = 0.1)
 
 filepath <- paste("E:/B组数据备份(4.29)/C组亚群样本//Hepatocytes",".RDS", sep = "")
+pbmc <- readRDS(filepath)
 saveRDS(pbmc, file= filepath)
 
 pbmc <- FindClusters(pbmc,resolution = 0.2)
