@@ -70,7 +70,8 @@ surPlot=ggsurvplot(fit,
                    risk.table.height=.25)
 
 #输出图形
-pdf(file="survival.pdf", width=6.5, height=6.25, onefile=FALSE)
+#pdf(file="survival.pdf", width=6.5, height=6.25, onefile=FALSE)
+png(file="survival.png", width=6.5, height=6.25, units="in", res=800)
 print(surPlot)
 dev.off()
 
