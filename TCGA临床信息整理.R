@@ -33,4 +33,11 @@ cl3 = lapply(cl, function(x){x[n,]})
 clinical <- t(do.call(cbind,cl3))
 
 #导出
-write.table(clinical,file="clinical.txt",sep="\t",quote=F,row.names = F)  
+# 将第十二列设置为行名
+rownames(clinical) <- clinical[, 12]
+
+# 从数据框中移除第十二列
+clinical <- clinical[, -12]
+
+# 现在写入文件
+write.table(clinical, file = "clinical.txt", sep = "\t", quote = FALSE, row.names = TRUE)  
