@@ -85,7 +85,7 @@ Hazard.ratio <- paste0(hr,"(",hrLow,"-",hrHigh,")")
 pVal <- ifelse(rt$pvalue<0.001, "<0.001", sprintf("%.3f", rt$pvalue))
 
 #绘制森林图
-pdf(file="uniCoxforest.pdf", width = 12,height = height = nrow(rt)/13+15)
+pdf(file="uniCoxforest.pdf", width = 12,height = nrow(rt)/13+15)
 n <- nrow(rt)
 nRow <- n+1
 ylim <- c(1,nRow)
