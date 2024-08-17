@@ -82,7 +82,8 @@ hmExp=log2(data[hmGene,]+0.01)
 Type=c(rep("Normal",conNum),rep("Tumor",treatNum))
 names(Type)=colnames(data)
 Type=as.data.frame(Type)
-pdf(file="heatmap_CRC_Top50.pdf", width=10, height=8)
+#pdf(file="heatmap_CRC_Top50.pdf", width=10, height=8)
+png("heatmap_CRC_Top50.png", width=10, height=8, units = "in", res = 800)
 pheatmap(hmExp, 
          annotation=Type, 
          color = colorRampPalette(c(rep("blue",5), "white", rep("red",5)))(50),
@@ -95,7 +96,8 @@ pheatmap(hmExp,
 dev.off()
 
 #火山图
-pdf(file="vol.pdf", width=5, height=5)
+#pdf(file="vol.pdf", width=5, height=5)
+png("volcano.png", width=5, height=5, units = "in", res = 800)
 xMax=6
 yMax=max(-log10(outTab$fdr))+1
 plot(as.numeric(as.vector(outTab$logFC)), -log10(outTab$fdr), xlab="logFC",ylab="-log10(fdr)",
@@ -154,12 +156,13 @@ pdf(file="vol.pdf", width=5, height=5)
 print(p)
 dev.off()
 
-#标记出5个基因的label
+#标记出选定基因的label
 geneList1 <- outTab[rownames(outTab) %in% geneList0,]
 geneList1 <- subset(geneList1, select = -change)
 geneList1$label <- rownames(geneList1)
 
-pdf("hotplot.pdf", width = 8, height = 10)
+#pdf("hotplot.pdf", width = 8, height = 10)
+png("hotplot.png", width = 8, height = 10, units = "in", res = 800)
 library(ggrepel)
 p + geom_label_repel(data = geneList1, 
                      aes(x = logFC, y = -log10(fdr), label = label),
