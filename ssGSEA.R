@@ -72,8 +72,8 @@ names(Type)=rownames(gsvaResult)
 Type=as.data.frame(Type)
 hmExp = t(hmExp)
 
-pdf(file="heatmap.pdf", width=10, height=12)
-pheatmap(hmExp, 
+#pdf(file="heatmap.pdf", width=10, height=12)
+heatmap <- pheatmap(hmExp, 
          annotation=Type, 
          color = colorRampPalette(c(rep("blue",5), "white", rep("red",5)))(50),
          cluster_cols =F,
@@ -82,5 +82,7 @@ pheatmap(hmExp,
          fontsize = 8,
          fontsize_row=5,
          fontsize_col=8)
+png(file="heatmap.png", width=10, height=12, units="in", res=800)
+print(heatmap)
 dev.off()
 

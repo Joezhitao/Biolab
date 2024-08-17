@@ -55,20 +55,23 @@ fit=glmnet(x, y, family="cox", nfolds = 10)
 
 #c-index
 cvfit <- cv.glmnet(x, y, family = "cox", type.measure = "C", nfolds = 10)
-pdf("lasso.c-index.pdf")
+#pdf("lasso.c-index.pdf")
+png(file="lasso.c-index.png", width=8, height=8, units="in", res=800)
 plot(cvfit)
 abline(v=log(c(cvfit$lambda.min,cvfit$lambda.1se)), lty="dashed")
 dev.off()
 
 #deviance图形
 cvfit=cv.glmnet(x, y, family="cox", type.measure = "deviance", nfolds = 10)
-pdf("lasso.cvfit.pdf")
+#pdf("lasso.cvfit.pdf")
+png(file="lasso.cvfit.png", width=8, height=8, units="in", res=800)
 plot(cvfit)
 abline(v=log(c(cvfit$lambda.min,cvfit$lambda.1se)), lty="dashed")
 dev.off()
 
 #Coefficients图形
-pdf("lasso.lambda.pdf")
+#pdf("lasso.lambda.pdf")
+png(file="lasso.lambda.png", width=8, height=8, units="in", res=800)
 plot(fit, xvar="lambda", label=T)
 abline(v=log(cvfit$lambda.min), lty="dashed")
 dev.off()

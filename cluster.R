@@ -1,4 +1,3 @@
-
 #if (!require("BiocManager", quietly = TRUE))
 #  install.packages("BiocManager")
 
@@ -100,7 +99,8 @@ pca <- fviz_pca_ind(dat,
                     axes.linetype = "blank",  #hide zeroline
                     legend.title = "group")
 
-pdf("PCA.pdf", width=10, height=10)
+#pdf("PCA.pdf", width=10, height=10)
+png("PCA.png", width=10, height=10, units = "in", res = 800)
 print(pca)
 dev.off()
 
@@ -149,7 +149,7 @@ pValue
 fit <- survfit(Surv(time, state) ~ Cluster, data = rt)
 summary(fit)
 
-pround <- round(pVlue, 6)
+pround <- round(pValue, 6)
 
 length = length(levels(factor(rt$Cluster)))
 
@@ -172,6 +172,7 @@ p <- ggsurvplot(fit,
                    cumevents=F,
                    risk.table.height=.25)
 
-pdf(file=paste("survial.pdf",sep = ""), width=6.5, height=6.25, onefile=FALSE)
+#pdf(file=paste("survial.pdf",sep = ""), width=6.5, height=6.25, onefile=FALSE)
+png("survial.png", width=6.5, height=6.25, units = "in", res = 800)
 print(p)
 dev.off()

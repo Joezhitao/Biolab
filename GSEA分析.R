@@ -37,7 +37,8 @@ kkUp=kkTab[kkTab$NES>0,]
 if(nrow(kkUp)>=termNum){
   showTerm=row.names(kkUp)[1:termNum]
   gseaplot=gseaplot2(kk, showTerm, base_size=8, title="Enriched in Tumor", pvalue_table = T)
-  pdf(file="GSEA.tumor.KEGG.pdf", width=13, height=10)
+  #pdf(file="GSEA.tumor.KEGG.pdf", width=13, height=10)
+  png(file="GSEA.tumor.KEGG.png", width=13, height=10, units="in", res=800)
   print(gseaplot)
   dev.off()
 }
@@ -48,7 +49,8 @@ kkDown=kkTab[kkTab$NES<0,]
 if(nrow(kkDown)>=termNum){
   showTerm=row.names(kkDown)[1:termNum]
   gseaplot=gseaplot2(kk, showTerm, base_size=8, title="Enriched in Normal", pvalue_table = T)
-  pdf(file="GSEA.normal.KEGG.pdf", width=13, height=10)
+  #pdf(file="GSEA.normal.KEGG.pdf", width=13, height=10)
+  png(file="GSEA.normal.KEGG.png", width=13, height=10, units="in", res=800)
   print(gseaplot)
   dev.off()
 }
