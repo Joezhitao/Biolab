@@ -44,14 +44,18 @@ write.table(GO, file="GO.txt", sep="\t", quote=F, row.names = F)
 showNum=20
 
 #柱状图
-pdf(file="GObarplot.pdf", width=17, height=17)
-bar=barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+#pdf(file="GObarplot.pdf", width=17, height=17)
+bar=barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, 
+            split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+png(file="GObarplot.png", width=16, height=10, res=600, units="in")
 print(bar)
 dev.off()
 
 #气泡图
-pdf(file="GObubble.pdf", width=17, height=17)
-bub=dotplot(kk, showCategory=showNum, orderBy="GeneRatio", label_format=130, split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+#pdf(file="GObubble.pdf", width=17, height=17)
+bub=dotplot(kk, showCategory=showNum, orderBy="GeneRatio", 
+            label_format=130, split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+png(file="GObubble.png", width=16, height=10, res=600, units="in")
 print(bub)
 dev.off()
 
@@ -64,9 +68,20 @@ kk <- pairwise_termsim(kk)
 # 创建网络图
 emapplot(kk)
 
-cnetplot(kk) #网络图展示富集功能和基因的包含关系
-emapplot(kk) #网络图展示各富集功能之间共有基因关系
-heatplot(kk) #热图展示富集功能和基因的包含关系
+cnetplot <- cnetplot(kk) #网络图展示富集功能和基因的包含关系
+png(file="cnetplot.png", width=16, height=16, res=800, units="in")
+print(cnetplot)
+dev.off()
+
+emapplot <- emapplot(kk)#网络图展示各富集功能之间共有基因关系
+png(file="emapplot.png", width=16, height=16, res=800, units="in")
+print(emapplot)
+dev.off()
+
+heatplot <- heatplot(kk) #热图展示富集功能和基因的包含关系
+png(file="heatplot.png", width=16, height=16, res=800, units="in")
+print(heatplot)
+dev.off()
 
 #筛选条件
 pvalueFilter=0.05
@@ -77,7 +92,8 @@ if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
 #KEGG
 kk <- enrichKEGG(gene=gene, organism="hsa", pvalueCutoff=1, qvalueCutoff=1)
 KEGG=as.data.frame(kk)
-KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(input_gene[match(strsplit(x,"/")[[1]],as.character(entrezIDs))],collapse="/")))
+KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(input_gene[match(strsplit(x,"/")[[1]],
+                                                                              as.character(entrezIDs))],collapse="/")))
 KEGG=KEGG[(KEGG$pvalue<pvalueFilter & KEGG$qvalue<qvalueFilter),]
 
 #保存
@@ -87,11 +103,13 @@ write.table(KEGG, file="KEGG.txt", sep="\t", quote=F, row.names = F)
 showNum=20
 
 #柱状图
-pdf(file="KEGGbarplot.pdf", width=17, height=17)
+#pdf(file="KEGGbarplot.pdf", width=17, height=17)
+png(file="KEGGbarplot.png", width=17, height=17, res=600, units="in")
 barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, color=colorSel)
 dev.off()
 
 #气泡图
-pdf(file="KEGGbubble.pdf", width = 17, height = 17)
+#pdf(file="KEGGbubble.pdf", width = 17, height = 17)
+png(file="KEGGbubble.png", width=17, height=17, res=600, units="in")
 dotplot(kk, showCategory=showNum, orderBy="GeneRatio", label_format=130, color=colorSel)
 dev.off()
