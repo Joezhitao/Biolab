@@ -41,7 +41,8 @@ data=as.data.frame(data[,c(1,3)])
 colnames(data)=c("Normal","Tumor")
 
 #绘制图形
-pdf(file="pairDiff.pdf",width=5.5,height=5)
+#pdf(file="pairDiff.pdf",width=5.5,height=5)
+png(file="pairDiff.png",width=5.5,height=5,units="in",res=600)
 ggpaired(data, cond1 = "Normal", cond2 = "Tumor",fill = c("red","blue"), palette = "jco",
          xlab="",ylab = paste0(gene," expression"))+
   stat_compare_means(paired = TRUE, label = "p.format", label.x = 1.35)
