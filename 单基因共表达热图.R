@@ -21,24 +21,30 @@ rownames(df_transposed) <- NULL
 # 将所有基因表达值进行 log2(TPM + 1) 转换
 df_transposed[,-ncol(df_transposed)] <- log2(df_transposed[,-ncol(df_transposed)] + 1)
 
-# 计算 NELL2 的中位数
-nell2_median <- median(df_transposed$NELL2, na.rm = TRUE)
+#########################
+#设置目标基因
+#########################
+gene <- c("NELL2")
+#########################
+
+# 计算 目标基因 的中位数
+nell2_median <- median(df_transposed[[gene]], na.rm = TRUE)
 
 # 根据 NELL2 的表达量将样本分为高表达组和低表达组
-df_transposed$ExpressionGroup <- ifelse(df_transposed$NELL2 > nell2_median, "high", "low")
+df_transposed$ExpressionGroup <- ifelse(df_transposed[[gene]] > nell2_median, "high", "low")
 
 # 查看结果
 print(df_transposed)
 
 # 计算 NELL2 与其他基因的 Pearson 相关性
-correlations <- sapply(df_transposed[, -which(names(df_transposed) %in% c("Sample", "ExpressionGroup", "NELL2"))], 
+correlations <- sapply(df_transposed[, -which(names(df_transposed) %in% c("Sample", "ExpressionGroup", gene))], 
                        function(x) cor(x, df_transposed$NELL2, use = "complete.obs"))
 
 # 找到相关性绝对值最强的 10 个基因
 top_genes <- names(sort(abs(correlations), decreasing = TRUE))[1:10]
 
 # 创建一个新的数据框，仅保留 NELL2 和相关性最强的 10 个基因
-df_top_genes <- df_transposed[, c("NELL2", top_genes, "Sample", "ExpressionGroup")]
+df_top_genes <- df_transposed[, c(gene, top_genes, "Sample", "ExpressionGroup")]
 
 # 查看结果
 print(df_top_genes)
@@ -49,7 +55,7 @@ library(grid)  # 用于单位设置
 sorted_df <- df_top_genes[order(df_top_genes$NELL2), ]
 
 # 提取用于热图的数据（移除 Sample、ExpressionGroup 和 NELL2 列）
-heatmap_data <- sorted_df[, -which(names(sorted_df) %in% c("Sample", "ExpressionGroup", "NELL2"))]
+heatmap_data <- sorted_df[, -which(names(sorted_df) %in% c("Sample", "ExpressionGroup",gene))]
 
 # 转置数据框以便样本在列上，基因在行上
 heatmap_data_t <- t(heatmap_data)
@@ -110,7 +116,7 @@ line_plot <- ggplot(line_data, aes(x = Sample, y = NELL2, fill = Group)) +
     axis.ticks.length.y = unit(0.2, "cm"),  # 设置刻度线长度
     axis.line = element_line(color = "black")  # 显示轴线
   ) +
-  labs(y = "NELL2 Log2(TPM+1)", x = NULL) +
+  labs(y = paste0(gene,"log2(TPM+1)",sep = ""), x = NULL) +
   scale_x_continuous(expand = c(0, 0)) +  # 去掉x轴的空白
   scale_y_continuous(breaks = seq(0, ceiling(max(line_data$NELL2)), by = 2))  # 设置 y 轴间隔为 2
 
@@ -127,11 +133,11 @@ heatmap <- pheatmap(
   color = colorRampPalette(c("blue", "white", "red"))(50),
   fontsize_row = 8,  # 调整行名字体大小
   legend = TRUE,  # 显示图例
-  legend_labels = "z-score"  # 添加渐变色图名字
+  #legend_labels = "z-score"  # 添加渐变色图名字
 )
 
 # 保存为 PNG 并合并图形
-png("E:/CORD/DEG/heatmap3.png", width = 10, height = 10, units = "in", res = 800)
+png(paste0("E:/CORD/DEG/heatmap_",gene,".png",sep = ""), width = 10, height = 10, units = "in", res = 800)
 plot_grid(
   line_plot, 
   heatmap$gtable, 
@@ -140,8 +146,4 @@ plot_grid(
   axis = "tb",  # 指定在顶部和底部对齐
   rel_heights = c(1, 4)
 )
-dev.off()
-
-# 合并热图和折线图
-png("E:/CORD/DEG/heatmap.png", width = 8, height = 8, units = "in", res = 800)
 dev.off()
