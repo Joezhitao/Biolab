@@ -3,7 +3,7 @@ library(ggplot2)
 library(pheatmap)
 library(reshape2)
 library(Hmisc)
-
+rm(list = ls())
 # 设置工作目录
 setwd("E:/CORD/DEG")
 
@@ -43,47 +43,6 @@ df_top_genes <- df_transposed[, c("NELL2", top_genes, "Sample", "ExpressionGroup
 # 查看结果
 print(df_top_genes)
 
-# 加载必要的包
-library(pheatmap)
-
-# 按照 NELL2 的表达量对样本进行排序
-sorted_df <- df_top_genes[order(df_top_genes$NELL2), ]
-
-# 提取用于热图的数据（移除 Sample 和 ExpressionGroup 列）
-heatmap_data <- sorted_df[, -which(names(sorted_df) %in% c("Sample", "ExpressionGroup"))]
-
-# 转置数据框以便样本在列上，基因在行上
-heatmap_data_t <- t(heatmap_data)
-
-# 计算 p 值和 R 值
-cor_results <- apply(heatmap_data_t[-1, ], 1, function(x) {
-  test <- cor.test(x, heatmap_data_t["NELL2", ])
-  list(p_value = test$p.value, r_value = test$estimate)
-})
-
-# 创建基因名称向量，附加 p 值和 R 值
-gene_names <- sapply(names(cor_results), function(name) {
-  p_val <- cor_results[[name]]$p_value
-  r_val <- cor_results[[name]]$r_value
-  sprintf("%s\np=%.3f R=%.3f", name, p_val, r_val)
-})
-
-# 绘制热图
-pheatmap(
-  heatmap_data_t,
-  cluster_cols = FALSE,  # 不对列（样本）进行聚类
-  cluster_rows = TRUE,   # 对行（基因）进行聚类
-  labels_row = c("NELL2", gene_names),  # 行标签
-  show_rownames = TRUE,
-  show_colnames = FALSE,
-  scale = "row"  # 按行标准化
-)
-#######################################################################################
-
-# 加载必要的包
-library(pheatmap)
-library(ggplot2)
-library(cowplot)
 library(grid)  # 用于单位设置
 
 # 按照 NELL2 的表达量对样本进行排序
@@ -132,6 +91,12 @@ heatmap <- pheatmap(
 )
 
 # 绘制折线图
+line_data <- data.frame(
+  Sample = 1:nrow(sorted_df),
+  NELL2 = sorted_df$NELL2,
+  Group = sorted_df$ExpressionGroup
+)
+
 line_plot <- ggplot(line_data, aes(x = Sample, y = NELL2, fill = Group)) +
   geom_area(alpha = 0.5) +
   geom_line() +
@@ -166,7 +131,7 @@ heatmap <- pheatmap(
 )
 
 # 保存为 PNG 并合并图形
-png("E:/CORD/DEG/heatmap2.png", width = 10, height = 10, units = "in", res = 800)
+png("E:/CORD/DEG/heatmap3.png", width = 10, height = 10, units = "in", res = 800)
 plot_grid(
   line_plot, 
   heatmap$gtable, 
