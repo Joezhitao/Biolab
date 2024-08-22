@@ -1442,3 +1442,225 @@ for (i in gene) {
 }
 ```
 
+## ssGSEA
+
+```{r ssGSEA, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(limma)
+library(GSEABase)
+library(GSVA)
+library(pheatmap)
+library(reshape2)
+library(ggpubr)
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+#读取输入文件
+data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+#转化为matrix
+dimnames=list(rownames(data), colnames(data))
+data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+#读入基因集
+geneSets=getGmt("c2.cp.kegg_medicus.v2024.1.Hs.symbols.gmt", geneIdType=SymbolIdentifier())
+#分析
+gsvapar <- gsvaParam(data, geneSets,kcdf='Gaussian',absRanking=TRUE)
+gsvaResult <- gsva(gsvapar)
+#对打分进行标准化
+normalize=function(x){return((x-min(x))/(max(x)-min(x)))}
+gsvaResult=normalize(gsvaResult)
+#导出
+gsvaOut=rbind(id=colnames(gsvaResult), gsvaResult)
+write.table(gsvaOut, file="ssgseaOut.txt", sep="\t", quote=F, col.names=F)
+#获取分组信息
+#正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+group=sapply(strsplit(group,""), "[", 1)
+#将2变为1
+group=gsub("2", "1", group)
+#获取正常及肿瘤组样本数目
+conNum=length(group[group==1])
+treatNum=length(group[group==0])
+Type=c(rep(1,conNum), rep(2,treatNum))
+#根据正常和肿瘤排序
+gsvaResult1 = gsvaResult[,group == 1]
+gsvaResult2 = gsvaResult[,group == 0]
+gsvaResult = cbind(gsvaResult1,gsvaResult2)
+gsvaResult = cbind(t(gsvaResult),Type)
+#提取差异显著的通路
+sigGene=c()
+for(i in colnames(gsvaResult)[1:(ncol(gsvaResult)-1)]){
+  test=wilcox.test(gsvaResult[,i] ~ gsvaResult[,"Type"])
+  pvalue=test$p.value
+  if(pvalue<0.05){
+    sigGene=c(sigGene, i)
+  }
+}
+#热图
+hmExp=gsvaResult[,sigGene]
+Type=c(rep("Normal",conNum),rep("Tumor",treatNum))
+names(Type)=rownames(gsvaResult)
+Type=as.data.frame(Type)
+hmExp = t(hmExp)
+#pdf(file="heatmap.pdf", width=10, height=12)
+heatmap <- pheatmap(hmExp, 
+         annotation=Type, 
+         color = colorRampPalette(c(rep("blue",5), "white", rep("red",5)))(50),
+         cluster_cols =F,
+         show_colnames = F,
+         scale="row",
+         fontsize = 8,
+         fontsize_row=5,
+         fontsize_col=8)
+png(file="heatmap_ssGSEA_kegg_medicus.png", width=10, height=32, units="in", res=800)
+print(heatmap)
+dev.off()
+```
+
+## lasso回归
+
+```{r lasso, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library("glmnet")
+library("survival")
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+#读入生存数据
+cli=read.table("time_CRC.txt", header=T, sep="\t", check.names=F, row.names=1)
+#生存时间以年为单位
+cli$time=cli$time/365
+#读入
+data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+#转化为matrix
+dimnames=list(rownames(data), colnames(data))
+data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+#正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+group=sapply(strsplit(group,""), "[", 1)
+#仅保留肿瘤样本
+data = data[,group == 0]
+#读取单因素cox基因的表达矩阵
+unicoxgene=read.table("uniCox.txt", header=T, sep="\t", check.names=F,row.names = 1)
+data = data[rownames(unicoxgene),]
+#转置
+data=t(data)
+#样本名仅保留前12字符
+rownames(data)=substr(rownames(data),1,12)
+#将.改为-
+rownames(data) = gsub('[.]', '-', rownames(data))
+#获取共同样本
+sameSample=intersect(row.names(data), row.names(cli))
+#提取共同样本
+data=data[sameSample,]
+cli=cli[sameSample,]
+#合并
+rt=cbind(cli, data)
+#设置随机种子，K折交叉验证，每次的数据都是随机的，随机数种子一致，就结果给固定住。
+set.seed(123456)
+#构建lasso回归模型
+x=as.matrix(rt[,c(3:ncol(rt))])
+y=data.matrix(Surv(rt$time, rt$state))
+fit=glmnet(x, y, family="cox", nfolds = 10)
+#c-index
+cvfit <- cv.glmnet(x, y, family = "cox", type.measure = "C", nfolds = 10)
+#pdf("lasso.c-index.pdf")
+png(file="lasso.c-index.png", width=8, height=8, units="in", res=800)
+plot(cvfit)
+abline(v=log(c(cvfit$lambda.min,cvfit$lambda.1se)), lty="dashed")
+dev.off()
+#deviance图形
+cvfit=cv.glmnet(x, y, family="cox", type.measure = "deviance", nfolds = 10)
+#pdf("lasso.cvfit.pdf")
+png(file="lasso.cvfit.png", width=8, height=8, units="in", res=800)
+plot(cvfit)
+abline(v=log(c(cvfit$lambda.min,cvfit$lambda.1se)), lty="dashed")
+dev.off()
+#pdf("lasso.lambda.pdf")
+png(file="lasso.lambda.png", width=8, height=8, units="in", res=800)
+plot(fit, xvar="lambda", label=T)
+abline(v=log(cvfit$lambda.min), lty="dashed")
+dev.off()
+#输出lasso显著基因表达量
+coef=coef(fit, s=cvfit$lambda.min)
+index=which(coef != 0)
+actCoef=coef[index]
+lassoGene=row.names(coef)[index]
+row.names(coef)[index]
+actCoef
+index
+lassoSigExp=rt[,c("time", "state", lassoGene)]
+lassoSigExpOut=cbind(id=row.names(lassoSigExp), lassoSigExp)
+write.table(lassoSigExpOut,file="lasso.SigExp.txt",sep="\t",row.names=F,quote=F)
+```
+
+## 多因素Cox回归
+
+```{r multiCox, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(survival)
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+#读入
+rt=read.table("lasso.SigExp.txt",header=T,sep="\t",check.names=F,row.names=1)   
+#COX模型构建
+multiCox=coxph(Surv(time, state) ~ ., data = rt)
+#参数多，选取逐步回归方式，step，"both", "backward", "forward"
+#参数少，不运行此行
+multiCox=step(multiCox,direction = "both")
+multiCoxSum=summary(multiCox)
+#输出模型参数
+outTab=data.frame()
+outTab=cbind(
+  coef=multiCoxSum$coefficients[,"coef"],
+  HR=multiCoxSum$conf.int[,"exp(coef)"],
+  HR.95L=multiCoxSum$conf.int[,"lower .95"],
+  HR.95H=multiCoxSum$conf.int[,"upper .95"],
+  pvalue=multiCoxSum$coefficients[,"Pr(>|z|)"])
+outTab=cbind(id=row.names(outTab),outTab)
+outTab=gsub("`","",outTab)
+write.table(outTab,file="multiCox.txt",sep="\t",row.names=F,quote=F)
+#输出病人风险值
+riskScore=predict(multiCox,type="risk",newdata=rt)
+coxGene=rownames(multiCoxSum$coefficients)
+coxGene=gsub("`","",coxGene)
+outCol=c("time","state",coxGene)
+risk=as.vector(ifelse(riskScore>median(riskScore),"high","low"))
+write.table(cbind(id=rownames(cbind(rt[,outCol],riskScore,risk)),cbind(rt[,outCol],riskScore,risk)),
+            file="risk.txt",
+            sep="\t",
+            quote=F,
+            row.names=F)
+#画图
+#读取输入文件
+rt <- read.table("multiCox.txt",header=T,sep="\t",check.names=F,row.names=1)
+gene <- rownames(rt)
+hr <- sprintf("%.3f",rt$"HR")
+hrLow  <- sprintf("%.3f",rt$"HR.95L")
+hrHigh <- sprintf("%.3f",rt$"HR.95H")
+Hazard.ratio <- paste0(hr,"(",hrLow,"-",hrHigh,")")
+pVal <- ifelse(rt$pvalue<0.001, "<0.001", sprintf("%.3f", rt$pvalue))
+#绘制森林图
+pdf(file="multiCoxforest.pdf", width = 12,height = nrow(rt)/13+5)
+n <- nrow(rt)
+nRow <- n+1
+ylim <- c(1,nRow)
+layout(matrix(c(1,2),nc=2),width=c(3,2.5))
+xlim = c(0,3)
+par(mar=c(4,2.5,2,1))
+plot(1,xlim=xlim,ylim=ylim,type="n",axes=F,xlab="",ylab="")
+text.cex=0.8
+text(0,n:1,gene,adj=0,cex=text.cex)
+text(1.5-0.5*0.2,n:1,pVal,adj=1,cex=text.cex);text(1.5-0.5*0.2,n+1,'pvalue',cex=text.cex,font=2,adj=1)
+text(3,n:1,Hazard.ratio,adj=1,cex=text.cex);text(3,n+1,'Hazard ratio',cex=text.cex,font=2,adj=1,)
+par(mar=c(4,1,2,1),mgp=c(2,0.5,0))
+xlim = c(0,max(as.numeric(hrLow),as.numeric(hrHigh)))
+plot(1,xlim=xlim,ylim=ylim,type="n",axes=F,ylab="",xaxs="i",xlab="Hazard ratio")
+arrows(as.numeric(hrLow),n:1,as.numeric(hrHigh),n:1,angle=90,code=3,length=0.05,col="darkblue",lwd=2.5)
+abline(v=1,col="black",lty=2,lwd=2)
+boxcolor = ifelse(as.numeric(hr) > 1, "red", "blue")
+points(as.numeric(hr), n:1, pch = 15, col = boxcolor, cex=1.6)
+axis(1)
+dev.off()
+```
+
