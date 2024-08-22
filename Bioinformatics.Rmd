@@ -1292,9 +1292,10 @@ genetable=read.table("uniCox.txt", header=T, sep="\t", check.names=F,row.names =
 gene <- rownames(genetable)
 #去除gene中重复基因
 gene=unique(gene)
+#gene <- rownames(rt)
 for (i in gene) {
   #设置保存路径
-  filepath <- paste0("E:/CRC/SURV/genesurv/")
+  filepath <- paste0("E:/CRC/SURV/multicox/")
   #读入生存数据
   cli=read.table("time_CRC.txt", header=T, sep="\t", check.names=F, row.names=1)
   #生存时间以年为单位
