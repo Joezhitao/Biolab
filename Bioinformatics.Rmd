@@ -799,15 +799,21 @@ intersectGenes = intersect(intersectGenes1,intersectGenes2)
 write.table(file="intersectGenes.txt", intersectGenes, sep="\t", quote=F, col.names=F, row.names=F)
 ```
 
-## 单因素cox回归
+## 单因素cox回归_基于limma的差异基因
 
 ```{r uniCOX, message=TRUE, warning=TRUE, include=FALSE}
 #加载
 library(survival)
 library(survminer)
 library(xlsx)
-#设置工作目录
-setwd("E:/CRC")
+# 设置工作目录
+base_dir <- "E:/CRC"
+# 创建文件夹
+dir.create(file.path(base_dir, "uniCox"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox" 文件夹
+dir.create(file.path(base_dir, "uniCox", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
+save_dir <- file.path(base_dir, "uniCox", "limma")
+# 设置工作目录
+setwd(base_dir)
 #读取表达文件
 data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
 #转化为matrix
@@ -857,10 +863,12 @@ for(i in colnames(rt[,3:ncol(rt)])){
   }
 }
 #输出单因素的结果
-write.table(outTab, file="uniCox.txt", sep="\t", row.names=F, quote=F)
+write.table(outTab, file=paste0(save_dir,"/","uniCox_limma.txt"), sep="\t", row.names=F, quote=F)
+write.table(outTab, file="uniCox.xlsx", sep="\t", row.names=F, quote=F)
+
 #画图
 #读取输入文件
-rt <- read.table("uniCox.txt",header=T,sep="\t",check.names=F,row.names=1)
+rt <- read.table(paste0(save_dir,"/","uniCox_limma.txt"),header=T,sep="\t",check.names=F,row.names=1)
 #仅仅做前20个,实际运行不运行这一行
 #rt = rt[1:20,]
 gene <- rownames(rt)
@@ -870,7 +878,7 @@ hrHigh <- sprintf("%.3f",rt$"HR.95H")
 Hazard.ratio <- paste0(hr,"(",hrLow,"-",hrHigh,")")
 pVal <- ifelse(rt$pvalue<0.001, "<0.001", sprintf("%.3f", rt$pvalue))
 #绘制森林图
-pdf(file="uniCoxforest.pdf", width = 12,height = nrow(rt)/13+15)
+pdf(file=paste0(save_dir,"/","uniCoxforest_limma.pdf"), width = 12,height = nrow(rt)/13+15)
 n <- nrow(rt)
 nRow <- n+1
 ylim <- c(1,nRow)
@@ -893,5 +901,275 @@ boxcolor = ifelse(as.numeric(hr) > 1, "red", "blue")
 points(as.numeric(hr), n:1, pch = 15, col = boxcolor, cex=1.6)
 axis(1)
 dev.off()
+```
+
+## GO富集分析_跑uniCox的差异基因
+
+```{r GO_base_on_uniCox, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+library(stringi)	
+library(GOplot)
+R.utils::setOption("clusterProfiler.download.method",'auto')
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+# 创建文件夹
+dir.create(file.path(base_dir, "GO"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox" 文件夹
+dir.create(file.path(base_dir, "GO", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
+save_dir <- file.path(base_dir, "GO", "limma")
+#读入
+input_diff =read.table("uniCox.txt",sep="\t",header=T,check.names=F) 
+input_gene <- input_diff[,1]
+#去除重复基因
+input_gene=unique(as.vector(input_gene))
+#将gene symbol转换为基因id
+#org.Hs.eg为人的物种
+#https://www.jianshu.com/p/84e70566a6c6
+entrezIDs=mget(input_gene, org.Hs.egSYMBOL2EG, ifnotfound=NA)
+entrezIDs=as.character(entrezIDs)
+#去除基因id为NA的基因
+gene=entrezIDs[entrezIDs!="NA"]
+#去除多个ID
+gene=gsub("c\\(\"(\\d+)\".*", "\\1", gene)
+#筛选条件
+pvalueFilter=0.05
+qvalueFilter=1       
+if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
+#GO
+kk=enrichGO(gene=gene, OrgDb=org.Hs.eg.db, pvalueCutoff=1, qvalueCutoff=1, ont="all", readable=T)
+GO=as.data.frame(kk)
+GO=GO[(GO$pvalue<pvalueFilter & GO$qvalue<qvalueFilter),]
+#保存
+write.table(GO, file=paste0(save_dir,"/","GO_base_on_unicox.txt"), sep="\t", quote=F, row.names = F)
+#显示的数目
+showNum=20
+#柱状图
+#pdf(file="GObarplot.pdf", width=17, height=17)
+bar=barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, 
+            split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+png(file=paste0(save_dir,"/","GObarplot_base_on_unicox.png"), width=16, height=10, res=600, units="in")
+print(bar)
+dev.off()
+#气泡图
+#pdf(file="GObubble.pdf", width=17, height=17)
+bub=dotplot(kk, showCategory=showNum, orderBy="GeneRatio", 
+            label_format=130, split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+png(file=paste0(save_dir,"/","GObubble_base_on_unicox.png"), width=16, height=10, res=600, units="in")
+print(bub)
+dev.off()
+barplot(kk)  #富集柱形图
+dotplot(kk)  #富集气泡图
+# 计算术语相似性矩阵
+kk <- pairwise_termsim(kk)
+# 创建网络图
+emapplot(kk)
+emapplot <- emapplot(kk) #网络图展示富集功能和基因的包含关系
+png(file=paste0(save_dir,"/","emapplot_base_on_unicox.png"), width=16, height=16, res=600, units="in")
+print(emapplot)
+dev.off()
+cnetplot <- cnetplot(kk)#网络图展示各富集功能之间共有基因关系
+png(file=paste0(save_dir,"/","cnetplot_base_on_unicox.png"), width=16, height=16, res=600, units="in")
+print(cnetplot)
+dev.off()
+heatplot <- heatplot(kk) #热图展示富集功能和基因的包含关系
+png(file=paste0(save_dir,"/","heatplot_base_on_unicox.png"), width=16, height=16, res=600, units="in")
+print(heatplot)
+dev.off()
+```
+
+## GO富集分析_for循环跑选定基因
+
+```{r GO_for_single_gene, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+library(stringi)	
+library(GOplot)
+R.utils::setOption("clusterProfiler.download.method",'auto')
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+# 创建文件夹
+dir.create(file.path(base_dir, "GO"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox" 文件夹
+dir.create(file.path(base_dir, "GO", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
+save_dir <- file.path(base_dir, "GO", "limma")
+#读入指定基因
+input_gene=c("NELL2","NKX2-2","HPCAL4")
+for (i in input_gene) {
+  #将gene symbol转换为基因id
+  #org.Hs.eg为人的物种
+  #https://www.jianshu.com/p/84e70566a6c6
+  entrezIDs=mget(i, org.Hs.egSYMBOL2EG, ifnotfound=NA)
+  entrezIDs=as.character(entrezIDs)
+  #去除基因id为NA的基因
+  gene=entrezIDs[entrezIDs!="NA"]
+  #去除多个ID
+  gene=gsub("c\\(\"(\\d+)\".*", "\\1", gene)
+  #筛选条件
+  pvalueFilter=0.05
+  qvalueFilter=1       
+  if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
+  #GO
+  kk=enrichGO(gene=gene, OrgDb=org.Hs.eg.db, pvalueCutoff=1, qvalueCutoff=1, ont="all", readable=T)
+  GO=as.data.frame(kk)
+  GO=GO[(GO$pvalue<pvalueFilter & GO$qvalue<qvalueFilter),]
+  #显示的数目
+  showNum=20
+  #柱状图
+  #pdf(file="GObarplot.pdf", width=17, height=17)
+  bar=barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, 
+              split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+  png(file=paste0(save_dir,"/",i,"_GObarplot.png"), width=16, height=10, res=600, units="in")
+  print(bar)
+  dev.off()
+  #气泡图
+  #pdf(file="GObubble.pdf", width=17, height=17)
+  bub=dotplot(kk, showCategory=showNum, orderBy="GeneRatio", 
+              label_format=130, split="ONTOLOGY", color=colorSel) + facet_grid(ONTOLOGY~., scale='free')
+  png(file=paste0(save_dir,"/",i,"_GObubble.png"), width=16, height=10, res=600, units="in")
+  print(bub)
+  dev.off()
+  barplot(kk)  #富集柱形图
+  dotplot(kk)  #富集气泡图
+  # 计算术语相似性矩阵
+  kk <- pairwise_termsim(kk)
+  # 创建网络图
+  emapplot(kk)
+  emapplot <- emapplot(kk) #网络图展示富集功能和基因的包含关系
+  png(file=paste0(save_dir,"/",i,"_emapplot.png"), width=16, height=16, res=600, units="in")
+  print(emapplot)
+  dev.off()
+  cnetplot <- cnetplot(kk)#网络图展示各富集功能之间共有基因关系
+  png(file=paste0(save_dir,"/",i,"_cnetplot.png"), width=16, height=16, res=600, units="in")
+  print(cnetplot)
+  dev.off()
+  heatplot <- heatplot(kk) #热图展示富集功能和基因的包含关系
+  png(file=paste0(save_dir,"/",i,"_heatplot.png"), width=16, height=16, res=600, units="in")
+  print(heatplot)
+  dev.off()
+}
+```
+
+## KEGG富集分析_跑uniCox的差异基因
+
+```{r KEGG_base_on_uniCox, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+library(stringi)	
+library(GOplot)
+R.utils::setOption("clusterProfiler.download.method",'auto')
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+# 创建文件夹
+dir.create(file.path(base_dir, "KEGG"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox" 文件夹
+dir.create(file.path(base_dir, "KEGG", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
+save_dir <- file.path(base_dir, "KEGG", "limma")
+#读入
+input_diff =read.table("uniCox.txt",sep="\t",header=T,check.names=F) 
+input_gene <- input_diff[,1]
+#去除重复基因
+input_gene=unique(as.vector(input_gene))
+#将gene symbol转换为基因id
+#org.Hs.eg为人的物种
+#https://www.jianshu.com/p/84e70566a6c6
+entrezIDs=mget(input_gene, org.Hs.egSYMBOL2EG, ifnotfound=NA)
+entrezIDs=as.character(entrezIDs)
+#去除基因id为NA的基因
+gene=entrezIDs[entrezIDs!="NA"]
+#去除多个ID
+gene=gsub("c\\(\"(\\d+)\".*", "\\1", gene)
+#筛选条件
+pvalueFilter=0.05
+qvalueFilter=1       
+if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
+#KEGG
+kk <- enrichKEGG(gene=gene, organism="hsa", pvalueCutoff=1, qvalueCutoff=1)
+KEGG=as.data.frame(kk)
+KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(input_gene[match(strsplit(x,"/")[[1]],
+                                                                    as.character(entrezIDs))],collapse="/")))
+KEGG=KEGG[(KEGG$pvalue<pvalueFilter & KEGG$qvalue<qvalueFilter),]
+#保存
+write.table(KEGG, file=paste0(save_dir,"/","KEGG.txt"), sep="\t", quote=F, row.names = F)
+#定义显示通路的数目
+showNum=20
+#柱状图
+bar <- barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, color=colorSel)
+#pdf(file="KEGGbarplot.pdf", width=17, height=17)
+png(file=paste0(save_dir,"/","KEGGbarplot_base_on_unicox.png"), width=17, height=17, res=600, units="in")
+print(bar)
+dev.off()
+#气泡图
+dot <- dotplot(kk, showCategory=showNum, orderBy="GeneRatio", label_format=130, color=colorSel)
+#pdf(file="KEGGbubble.pdf", width = 17, height = 17)
+png(file=paste0(save_dir,"/","KEGGbubble_base_on_unicox.png"), width=17, height=17, res=600, units="in")
+print(dot)
+dev.off()
+```
+
+## KEGG富集分析_for循环跑选定基因
+
+```{r KEGG_for_single_gene, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+library(stringi)	
+library(GOplot)
+R.utils::setOption("clusterProfiler.download.method",'auto')
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+# 创建文件夹
+dir.create(file.path(base_dir, "KEGG"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox" 文件夹
+dir.create(file.path(base_dir, "KEGG", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
+save_dir <- file.path(base_dir, "KEGG", "limma")
+#读入指定基因
+input_gene=c("NELL2","NKX2-2","HPCAL4")
+for (i in input_gene) {
+  #将gene symbol转换为基因id
+  #org.Hs.eg为人的物种
+  #https://www.jianshu.com/p/84e70566a6c6
+  entrezIDs=mget(input_gene, org.Hs.egSYMBOL2EG, ifnotfound=NA)
+  entrezIDs=as.character(entrezIDs)
+  #去除基因id为NA的基因
+  gene=entrezIDs[entrezIDs!="NA"]
+  #去除多个ID
+  gene=gsub("c\\(\"(\\d+)\".*", "\\1", gene)
+  #筛选条件
+  pvalueFilter=0.05
+  qvalueFilter=1       
+  if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
+  #KEGG
+  kk <- enrichKEGG(gene=gene, organism="hsa", pvalueCutoff=1, qvalueCutoff=1)
+  KEGG=as.data.frame(kk)
+  KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(input_gene[match(strsplit(x,"/")[[1]],
+                                                                    as.character(entrezIDs))],collapse="/")))
+  KEGG=KEGG[(KEGG$pvalue<pvalueFilter & KEGG$qvalue<qvalueFilter),]
+  #定义显示通路的数目
+  showNum=20
+  #柱状图
+  bar <- barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, color=colorSel)
+  #pdf(file="KEGGbarplot.pdf", width=17, height=17)
+  png(file=paste0(save_dir,"/",i,"_KEGGbarplot.png"), width=7, height=7, res=600, units="in")
+  print(bar)
+  dev.off()
+  #气泡图
+  dot <- dotplot(kk, showCategory=showNum, orderBy="GeneRatio", label_format=130, color=colorSel)
+  #pdf(file="KEGGbubble.pdf", width = 17, height = 17)
+  png(file=paste0(save_dir,"/",i,"_KEGGbubble.png"), width=7, height=7, res=600, units="in")
+  print(dot)
+  dev.off()
+}
 ```
 
