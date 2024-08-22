@@ -640,7 +640,7 @@ for (i in geneList0) {
 
 ## TCGA差异基因分析_DESeq2
 
-```{r}
+```{r Differential_gene_analysis_DESeq2}
 #加载包
 library(limma)
 library(pheatmap)
@@ -1056,6 +1056,95 @@ for (i in input_gene) {
 }
 ```
 
+## GO富集分析_图美化_for循环跑选定基因
+
+```{r GO_for_single_gene_beautiful, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(ggplot2)
+library(stringi)	
+library(GOplot)
+library(tidyverse)
+R.utils::setOption("clusterProfiler.download.method",'auto')
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+# 创建文件夹
+dir.create(file.path(base_dir, "GO"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox" 文件夹
+dir.create(file.path(base_dir, "GO", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
+save_dir <- file.path(base_dir, "GO", "limma")
+#读入指定基因
+input_gene=c("ABCD3","ACOX1","CD1B","CDK5R2","CPT2","GLP2R","HPCAL4","HPSE2","KCNQ4","MAFA","OTOP3",
+             "TPM1","VGF")
+for (i in input_gene) {
+  #将gene symbol转换为基因id
+  #org.Hs.eg为人的物种
+  #https://www.jianshu.com/p/84e70566a6c6
+  entrezIDs=mget(i, org.Hs.egSYMBOL2EG, ifnotfound=NA)
+  entrezIDs=as.character(entrezIDs)
+  #去除基因id为NA的基因
+  gene=entrezIDs[entrezIDs!="NA"]
+  #去除多个ID
+  gene=gsub("c\\(\"(\\d+)\".*", "\\1", gene)
+  #筛选条件
+  pvalueFilter=0.05
+  qvalueFilter=1       
+  if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
+  #GO
+  kk=enrichGO(gene=gene, OrgDb=org.Hs.eg.db, pvalueCutoff=1, qvalueCutoff=1, ont="all", readable=T)
+  GO=as.data.frame(kk)
+  GO=GO[(GO$pvalue<pvalueFilter),]
+  eGo <- GO
+  eGo <- separate(data=eGo, col=GeneRatio,into = c("GR1", "GR2"), sep = "/") #劈分GeneRatio为2列（GR1、GR2）
+  eGo <- separate(data=eGo, col=BgRatio, into = c("BR1", "BR2"), sep = "/") #劈分BgRatio为2列（BR1、BR2）
+  eGo <- mutate(eGo, enrichment_factor = (as.numeric(GR1)/as.numeric(GR2))/(as.numeric(BR1)/as.numeric(BR2)))   #计算Enrichment Factor
+  eGoBP <- eGo %>% 
+      filter(ONTOLOGY == "BP") %>%
+      filter(row_number() >= 1, row_number() <= 10)
+  
+  eGoCC <- eGo %>% 
+      filter(ONTOLOGY == "CC") %>%
+      filter(row_number() >= 1, row_number() <= 10)
+  
+  eGoMF <- eGo %>% 
+      filter(ONTOLOGY == "MF") %>%
+      filter(row_number() >= 1, row_number() <= 10)
+  
+  # Initialize an empty list to store non-null data frames
+  data_frames <- list()
+  
+  # Add non-null data frames to the list
+  if (nrow(eGoBP) > 0) {
+      data_frames <- append(data_frames, list(eGoBP))
+  }
+  
+  if (nrow(eGoCC) > 0) {
+      data_frames <- append(data_frames, list(eGoCC))
+  }
+  
+  if (nrow(eGoMF) > 0) {
+      data_frames <- append(data_frames, list(eGoMF))
+  }
+  
+  # Combine the non-null data frames
+  eGo10 <- do.call(rbind, data_frames)
+  #绘制图
+  p <- ggplot(eGo10,aes(enrichment_factor,Description)) + 
+  geom_point(aes(size=Count,color=-1*log10(pvalue),shape=ONTOLOGY)) +
+  scale_color_gradient(low="green",high ="red") + 
+  labs(color=expression(-log[10](p_value)),size="Count", shape="Ontology",
+       x="Enrichment Factor",y="GO term",title="GO enrichment") + 
+  theme_bw()
+  p <- p + facet_wrap( ~ ONTOLOGY,ncol= 1,scale='free')
+  png(file=paste0(save_dir,"/",i,"_Dotplot.png"),width=12,height=8,units="in",res=600)
+  print(p)
+  dev.off()
+}
+```
+
+
 ## KEGG富集分析_跑uniCox的差异基因
 
 ```{r KEGG_base_on_uniCox, message=TRUE, warning=TRUE, include=FALSE}
@@ -1135,41 +1224,221 @@ dir.create(file.path(base_dir, "KEGG"), showWarnings = FALSE)  # 创建 "E:/CRC/
 dir.create(file.path(base_dir, "KEGG", "limma"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
 save_dir <- file.path(base_dir, "KEGG", "limma")
 #读入指定基因
-input_gene=c("NELL2","NKX2-2","HPCAL4")
+input_gene=c("ABCD3","ACOX1","CD1B","CDK5R2","CPT2","GLP2R","HPCAL4","HPSE2","KCNQ4","MAFA","OTOP3",
+             "TPM1","NPIPB5","VGF")
 for (i in input_gene) {
-  #将gene symbol转换为基因id
-  #org.Hs.eg为人的物种
-  #https://www.jianshu.com/p/84e70566a6c6
-  entrezIDs=mget(input_gene, org.Hs.egSYMBOL2EG, ifnotfound=NA)
-  entrezIDs=as.character(entrezIDs)
-  #去除基因id为NA的基因
-  gene=entrezIDs[entrezIDs!="NA"]
-  #去除多个ID
-  gene=gsub("c\\(\"(\\d+)\".*", "\\1", gene)
-  #筛选条件
-  pvalueFilter=0.05
-  qvalueFilter=1       
-  if(qvalueFilter>0.05){colorSel="pvalue"}else{colorSel="qvalue"}
-  #KEGG
-  kk <- enrichKEGG(gene=gene, organism="hsa", pvalueCutoff=1, qvalueCutoff=1)
-  KEGG=as.data.frame(kk)
-  KEGG$geneID=as.character(sapply(KEGG$geneID,function(x)paste(input_gene[match(strsplit(x,"/")[[1]],
+  # 将gene symbol转换为基因id
+  entrezIDs = mget(i, org.Hs.egSYMBOL2EG, ifnotfound = NA)
+  entrezIDs = as.character(entrezIDs)
+  # 去除基因id为NA的基因
+  gene = entrezIDs[entrezIDs != "NA"]
+  # 去除多个ID
+  gene = gsub("c\\(\"(\\d+)\".*", "\\1", gene)
+  # 筛选条件
+  pvalueFilter = 0.05
+  qvalueFilter = 1       
+  if (qvalueFilter > 0.05) {
+    colorSel = "pvalue"
+  } else {
+    colorSel = "qvalue"
+  }
+
+  # 使用 tryCatch 来捕获 enrichKEGG 的错误
+  kk <- tryCatch({
+    enrichKEGG(gene = gene, organism = "hsa", pvalueCutoff = 1, qvalueCutoff = 1)
+  }, error = function(e) {
+    message("Error in enrichKEGG for gene ", i, ": ", e$message)
+    return(NULL)
+  })
+
+  # 如果 kk 是 NULL，则跳过当前循环
+  if (is.null(kk)) {
+    next
+  }
+
+  KEGG = as.data.frame(kk)
+  KEGG$geneID = as.character(sapply(KEGG$geneID, function(x) paste(i[match(strsplit(x, "/")[[1]],   
                                                                     as.character(entrezIDs))],collapse="/")))
-  KEGG=KEGG[(KEGG$pvalue<pvalueFilter & KEGG$qvalue<qvalueFilter),]
-  #定义显示通路的数目
-  showNum=20
-  #柱状图
-  bar <- barplot(kk, drop=TRUE, showCategory=showNum, label_format=130, color=colorSel)
-  #pdf(file="KEGGbarplot.pdf", width=17, height=17)
-  png(file=paste0(save_dir,"/",i,"_KEGGbarplot.png"), width=7, height=7, res=600, units="in")
+  KEGG = KEGG[(KEGG$pvalue < pvalueFilter), ]
+
+  # 定义显示通路的数目
+  showNum = 20
+  # 柱状图
+  bar <- barplot(kk, drop = TRUE, showCategory = showNum, label_format = 130, color = colorSel)
+  png(file = paste0(save_dir, "/", i, "_KEGGbarplot.png"), width = 7, height = 7, res = 600, units = "in")
   print(bar)
   dev.off()
-  #气泡图
-  dot <- dotplot(kk, showCategory=showNum, orderBy="GeneRatio", label_format=130, color=colorSel)
-  #pdf(file="KEGGbubble.pdf", width = 17, height = 17)
-  png(file=paste0(save_dir,"/",i,"_KEGGbubble.png"), width=7, height=7, res=600, units="in")
+  # 气泡图
+  dot <- dotplot(kk, showCategory = showNum, orderBy = "GeneRatio", label_format = 130, color = colorSel)
+  png(file = paste0(save_dir, "/", i, "_KEGGbubble.png"), width = 7, height = 7, res = 600, units = "in")
   print(dot)
   dev.off()
+}
+
+```
+
+## 生存分析_for循环跑所有uniCox有意义基因
+
+```{r survival, message=TRUE, warning=TRUE, include=FALSE}
+#加载
+library(survival)
+library(survminer)
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+#for循环批量输出基因数据
+#读取cox差异分析基因文件
+genetable=read.table("uniCox.txt", header=T, sep="\t", check.names=F,row.names = 1)
+gene <- rownames(genetable)
+#去除gene中重复基因
+gene=unique(gene)
+for (i in gene) {
+  #设置保存路径
+  filepath <- paste0("E:/CRC/SURV/genesurv/")
+  #读入生存数据
+  cli=read.table("time_CRC.txt", header=T, sep="\t", check.names=F, row.names=1)
+  #生存时间以年为单位
+  cli$time=cli$time/365
+  #读取输入文件
+  data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+  #转化为matrix
+  dimnames=list(rownames(data), colnames(data))
+  data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+  #正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+  group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+  group=sapply(strsplit(group,""), "[", 1)
+  #仅保留肿瘤样本
+  data = data[,group == 0]
+  #转置
+  data=t(data)
+  #样本名仅保留前12字符
+  rownames(data)=substr(rownames(data),1,12)
+  #将.改为-
+  rownames(data) = gsub('[.]', '-', rownames(data))
+  #获取共同样本
+  sameSample=intersect(row.names(data), row.names(cli))
+  #提取共同样本
+  data=data[sameSample,]
+  cli=cli[sameSample,]
+  #合并
+  rt=cbind(cli, data)
+  #根据i基因表达量的中位值，把样品分为两组
+  group = ifelse(rt[,i]>quantile(rt[,i], seq(0,1,1/2))[2],"High","Low")
+  #group=ifelse(rt[,"ABCA3"]>quantile(rt[,"ABCA3"], seq(0,1,1/3))[3],"High","Low")
+  rt[,"group"] = group
+  length = length(levels(factor(group)))
+  #生存分析
+  diff = survdiff(Surv(time, state) ~group,data = rt)
+  pValue=1-pchisq(diff$chisq, df=length-1)
+  pValue=paste0("p=",sprintf("%.04f",pValue))
+  fit <- survfit(Surv(time, state) ~group,data = rt)
+  #绘制生存曲线
+  bioCol=c("Firebrick3","MediumSeaGreen","#6E568C","#223D6C")
+  bioCol=bioCol[1:length]
+  surPlot=ggsurvplot(fit, 
+                     data=rt,
+                     conf.int=F,
+                     pval=pValue,
+                     pval.size=6,
+                     legend.title=paste0(i," expression"),
+                     legend.labs=levels(factor(rt[,"group"])),
+                     legend = c(0.8, 0.8),
+                     font.legend=10,
+                     xlab="Time(years)",
+                     break.time.by = 2,
+                     palette = bioCol,
+                     surv.median.line = "hv",
+                     risk.table=T,
+                     cumevents=F,
+                     risk.table.height=.25)
+  #输出图形
+  png(file=paste(filepath,i,"_survial.png",sep = ""), width=6.5, height=6.25, units="in", res=600)
+  print(surPlot)
+  dev.off()
+}
+```
+
+## 生存分析_for循环跑所有uniCox有意义基因并且只挑出生存分析有意义
+
+```{r survival_meaningful, message=TRUE, warning=TRUE, include=FALSE}
+#加载
+library(survival)
+library(survminer)
+# 设置工作目录
+base_dir <- "E:/CRC"
+setwd(base_dir)
+#for循环批量输出基因数据
+#读取cox差异分析基因文件
+genetable=read.table("uniCox.txt", header=T, sep="\t", check.names=F,row.names = 1)
+gene <- rownames(genetable)
+#去除gene中重复基因
+gene=unique(gene)
+#for循环只输出p值小于0.05的生存曲线
+for (i in gene) {
+  #设置保存路径
+  filepath <- paste0("E:/CRC/SURV/genesurv_pvalue/")
+  #读入生存数据
+  cli=read.table("time_CRC.txt", header=T, sep="\t", check.names=F, row.names=1)
+  #生存时间以年为单位
+  cli$time=cli$time/365
+  #读取输入文件
+  data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+  #转化为matrix
+  dimnames=list(rownames(data), colnames(data))
+  data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+  #正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+  group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+  group=sapply(strsplit(group,""), "[", 1)
+  #仅保留肿瘤样本
+  data = data[,group == 0]
+  #转置
+  data=t(data)
+  #样本名仅保留前12字符
+  rownames(data)=substr(rownames(data),1,12)
+  #将.改为-
+  rownames(data) = gsub('[.]', '-', rownames(data))
+  #获取共同样本
+  sameSample=intersect(row.names(data), row.names(cli))
+  #提取共同样本
+  data=data[sameSample,]
+  cli=cli[sameSample,]
+  #合并
+  rt=cbind(cli, data)
+  #根据i基因表达量的中位值，把样品分为两组
+  group = ifelse(rt[,i]>quantile(rt[,i], seq(0,1,1/2))[2],"High","Low")
+  rt[,"group"] = group
+  length = length(levels(factor(group)))
+  #生存分析
+  diff = survdiff(Surv(time, state) ~group,data = rt)
+  pValue=1-pchisq(diff$chisq, df=length-1)
+  pValueFormatted=paste0("p=",sprintf("%.04f",pValue))
+  fit <- survfit(Surv(time, state) ~group,data = rt)
+  # 仅在pValue小于0.05时绘制和保存生存曲线
+  if (pValue < 0.05) {
+    #绘制生存曲线
+    bioCol=c("Firebrick3","MediumSeaGreen","#6E568C","#223D6C")
+    bioCol=bioCol[1:length]
+    surPlot=ggsurvplot(fit, 
+                       data=rt,
+                       conf.int=F,
+                       pval=pValueFormatted,
+                       pval.size=6,
+                       legend.title=paste0(i," expression"),
+                       legend.labs=levels(factor(rt[,"group"])),
+                       legend = c(0.8, 0.8),
+                       font.legend=10,
+                       xlab="Time(years)",
+                       break.time.by = 2,
+                       palette = bioCol,
+                       surv.median.line = "hv",
+                       risk.table=T,
+                       cumevents=F,
+                       risk.table.height=.25)
+    #输出图形
+    pdf(file=paste(filepath,i,"_survial.pdf",sep = ""), width=6.5, height=6.25, onefile=FALSE)
+    print(surPlot)
+    dev.off()
+  }
 }
 ```
 
