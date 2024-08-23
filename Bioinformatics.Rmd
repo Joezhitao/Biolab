@@ -828,8 +828,6 @@ allDEG2$log2FoldChange=as.numeric(as.vector(allDEG2$log2FoldChange))
 allDEG2$change = ifelse(allDEG2$padj < 0.05 & abs(allDEG2$log2FoldChange) >= 1, 
                        ifelse(allDEG2$log2FoldChange> 1 ,'Up','Down'),
                        'Stable')
-#设置工作目录
-setwd("E:/CRC")
 #火山图2,可以显示希望标记的基因,例：TUBA1C
 geneList0 <- c('CPT2',"GAL","GRM4")
 for (i in geneList0) {
