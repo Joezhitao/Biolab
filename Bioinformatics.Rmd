@@ -1856,7 +1856,7 @@ group=gsub("2", "1", group)
 data=t(data[,group==0])
 rownames(data)=gsub("(.*?)\\-(.*?)\\-(.*?)\\-(.*?)\\-.*", "\\1\\-\\2\\-\\3", rownames(data))
 #根据FEZF1表达量的中位值，把样品分为两组
-gene = "GRM4"
+gene = "GAL"
 Type = ifelse(data[,gene]>quantile(data[,gene], seq(0,1,1/2))[2],"High","Low")
 Type=factor(Type, levels=c("Low","High"))
 data=cbind(as.data.frame(data), Type)
@@ -1865,12 +1865,19 @@ rownames(data) = gsub("[.]","-",rownames(data))
 data=data[order(data[,gene]),] 
 #读取临床
 cli=read.table("clinical.txt", header=T, sep="\t", check.names=F, row.names=1)
-cli[,"Age"]=ifelse(cli[,"Age"]=="unknow", "unknow", ifelse(cli[,"Age"]>65,">65","<=65"))
+#cli$ID <- rownames(cli)
+#ID列提取到第一列
+#cli=cli[,c(ncol(cli),1:(ncol(cli)-1))]
+cli[,"age"]=ifelse(cli[,"age"]=="unknow", "unknow", ifelse(cli[,"age"]>65,">65","<=65"))
 #合并
 samSample=intersect(row.names(data), row.names(cli))
 data=data[samSample,"Type",drop=F]
 cli=cli[samSample,,drop=F]
 rt=cbind(data, cli)
+#rt 9到22列转为factor
+for(i in 1:17){
+  rt[,i]=factor(rt[,i])
+}
 #对临床性状进行循环，观察临床性状在高低表达组之间是否具有差异
 sigVec=c(gene)
 for(clinical in colnames(rt[,2:ncol(rt)])){
@@ -1907,8 +1914,8 @@ ha=HeatmapAnnotation(df=rt, col=colorList)
 zero_row_mat=matrix(nrow=0, ncol=nrow(rt))
 Hm=Heatmap(zero_row_mat, top_annotation=ha)
 #输出热图,*号说明相关性有统计学意义
-#pdf(file="heatmap.pdf", width=7, height=5)
-png(file="heatmap.png", width=7, height=5, units="in", res=800)
+pdf(file="GAL_heatmap.pdf", width=25, height=25)
+#png(file="heatmap.png", width=25, height=25, units="in", res=800)
 draw(Hm, merge_legend = TRUE, heatmap_legend_side = "bottom", annotation_legend_side = "bottom")
 dev.off()
 ```
