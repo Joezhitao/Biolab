@@ -9,7 +9,18 @@
 #加载R包
 library(maftools)
 library(dplyr)
+library(mclust)
+library(NMF)
+library(pheatmap)
+library(barplot3d)
+library(openxlsx)
+library(TRONCO)
+BiocManager::install("TRONCO")
+BiocManager::install("PoisonAlien/maftools")
+# 替换下面的URL和版本号为正确的仓库URL和你想安装的版本号
+remotes::install_github("BioinformaticsFMRP/maftools@v2.6.05")
 
+install.packages("barplot3d")
 #目录
 setwd("E:/CRC/genetic mutation/")
 #合并所有数据
@@ -67,12 +78,25 @@ write.table(gene_count,'geneMut.txt', sep="\t", quote=F, row.names = F)
 write.mafSummary(maf = all_mut,basename = "input")
 
 #绘制瀑布图oncoplot
+#missense_mutation:错义突变 frame_shift_del：移码缺失突变 
+#nonsense_mutation：无义突变 frame_shift_ins：移码插入突变 
+#splice_site：剪接位点 in_frame_ins：inframe插入 
+#in_frame_del：inframe缺失 translation_start_site:转录起始位点 
+#nonstop_mutation：终止密码子突变 
+plotmafSummary(maf = all_mut, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE, titvRaw = FALSE)
 pdf(file="maf.pdf", width=6, height=6)
 oncoplot(maf = all_mut,
          top = 30, #显示前30个的突变基因信息
          fontSize = 0.6, #设置字体大小
          showTumorSampleBarcodes = F) #不显示病人信息
 dev.off()
+#通路上的突变
+pws = pathways(maf = all_mut, plotType = 'treemap')
+pdf(file="pathway.pdf", width=6, height=6)
+plotPathways(maf = all_mut, pathlist = pws)
+dev.off()
+OncogenicPathways(maf = all_mut)
+PlotOncogenicPathways(maf = all_mut,pathways="RTK−RAS") 
 
 #计算tmb值
 tmb_table = tmb(maf = all_mut,logScale = F)
@@ -85,3 +109,5 @@ tmb_table <- aggregate( . ~ Tumor_Sample_Barcode,data=tmb_table, max)
 colnames(tmb_table)[1] = "id"
 colnames(tmb_table)[2] = "TMB"
 write.table(tmb_table,'TMB.txt', sep="\t", quote=F, row.names = F)
+
+#
