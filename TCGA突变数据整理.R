@@ -15,11 +15,10 @@ library(pheatmap)
 library(barplot3d)
 library(openxlsx)
 library(TRONCO)
-BiocManager::install("TRONCO")
+library(Matrix)
+install.packages("rgl", dependencies=TRUE)
+install.packages("Matrix")
 BiocManager::install("PoisonAlien/maftools")
-# 替换下面的URL和版本号为正确的仓库URL和你想安装的版本号
-remotes::install_github("BioinformaticsFMRP/maftools@v2.6.05")
-
 install.packages("barplot3d")
 #目录
 setwd("E:/CRC/genetic mutation/")
