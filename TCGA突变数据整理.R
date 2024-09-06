@@ -1,11 +1,4 @@
 
-#if (!require("BiocManager", quietly = TRUE))
-#  install.packages("BiocManager")
-
-#BiocManager::install("maftools")
-
-#install.packages("dplyr")
-
 #加载R包
 library(maftools)
 library(dplyr)
@@ -16,10 +9,7 @@ library(barplot3d)
 library(openxlsx)
 library(TRONCO)
 library(Matrix)
-install.packages("rgl", dependencies=TRUE)
-install.packages("Matrix")
-BiocManager::install("PoisonAlien/maftools")
-install.packages("barplot3d")
+
 #目录
 setwd("E:/CRC/genetic mutation/")
 #合并所有数据
@@ -73,8 +63,8 @@ gene_count <- data.frame(gene=rownames(mat_0_1),
 
 colnames(gene_count)[1] = "Gene"
 colnames(gene_count)[2] = "Num"
-write.table(gene_count,'geneMut.txt', sep="\t", quote=F, row.names = F)
-write.mafSummary(maf = all_mut,basename = "input")
+#write.table(gene_count,'geneMut.txt', sep="\t", quote=F, row.names = F)
+#write.mafSummary(maf = all_mut,basename = "input")
 
 #绘制瀑布图oncoplot
 #missense_mutation:错义突变 frame_shift_del：移码缺失突变 
@@ -82,20 +72,24 @@ write.mafSummary(maf = all_mut,basename = "input")
 #splice_site：剪接位点 in_frame_ins：inframe插入 
 #in_frame_del：inframe缺失 translation_start_site:转录起始位点 
 #nonstop_mutation：终止密码子突变 
+png(file="plotmafSummary.png", width=15, height=15, units = "in", res = 800)
 plotmafSummary(maf = all_mut, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE, titvRaw = FALSE)
-pdf(file="maf.pdf", width=6, height=6)
+dev.off()
+
+png(file="oncoplot.png", width=15, height=15, units = "in", res = 800)
 oncoplot(maf = all_mut,
          top = 30, #显示前30个的突变基因信息
          fontSize = 0.6, #设置字体大小
          showTumorSampleBarcodes = F) #不显示病人信息
 dev.off()
 #通路上的突变
-pws = pathways(maf = all_mut, plotType = 'treemap')
-pdf(file="pathway.pdf", width=6, height=6)
-plotPathways(maf = all_mut, pathlist = pws)
-dev.off()
+png(file="oncoplot_pathway.png", width=8, height=8, units = "in", res = 800)
 OncogenicPathways(maf = all_mut)
-PlotOncogenicPathways(maf = all_mut,pathways="RTK−RAS") 
+dev.off()
+#绘制特定通路上的突变基因
+png(file="PlotOncogenicPathways.png", width=8, height=8, units = "in", res = 800)
+PlotOncogenicPathways(maf = all_mut,pathways="RTK-RAS") 
+dev.off()
 
 #计算tmb值
 tmb_table = tmb(maf = all_mut,logScale = F)
@@ -109,4 +103,36 @@ colnames(tmb_table)[1] = "id"
 colnames(tmb_table)[2] = "TMB"
 write.table(tmb_table,'TMB.txt', sep="\t", quote=F, row.names = F)
 
-#
+#过渡和颠倒
+laml.titv = titv(maf = all_mut, plot = FALSE, useSyn = TRUE)
+#plot titv summary
+png(file="plotTiTv.png", width=8, height=8, units = "in", res = 800)
+plotTiTv(res = laml.titv)
+dev.off()
+
+#绘制lollipop图
+png(file="lollipopPlot.png", width=25, height=6, units = "in", res = 800)
+lollipopPlot(
+  maf = all_mut,
+  gene = 'TTN',
+  AACol = 'HGVSp_Short',
+  showMutationRate = TRUE,
+  refSeqID = 'NM_003319'  # 替换为你需要的转录本
+)
+dev.off()
+
+#蛋白质结构域
+png(file="plotProtein.png", width=8, height=8, units = "in", res = 800)
+plotProtein(gene = "TP53", refSeqID = "NM_000546")
+dev.off()
+
+#降雨图
+png(file="rainfallPlot.png", width=8, height=8, units = "in", res = 800)
+rainfallPlot(maf = all_mut, detectChangePoints = TRUE, pointSize = 0.4)
+dev.off()
+
+#将突变负荷与 TCGA 队列进行比较
+png(file="tcgaCompare.png", width=18, height=18, units = "in", res = 800)
+laml.mutload = tcgaCompare(maf = all_mut, cohortName = 'Example-LAML', logscale = TRUE, capture_size = 50)
+dev.off()
+
