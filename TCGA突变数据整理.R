@@ -136,3 +136,25 @@ png(file="tcgaCompare.png", width=18, height=18, units = "in", res = 800)
 laml.mutload = tcgaCompare(maf = all_mut, cohortName = 'Example-LAML', logscale = TRUE, capture_size = 50)
 dev.off()
 
+#躯体相互作用
+png(file="plotOncogenicSomaticInteractions.png", width=8, height=8, units = "in", res = 800)
+somaticInteractions(maf = all_mut, top = 25, pvalue = c(0.05, 0.1))
+dev.off()
+
+#基于位置聚类检测癌症驱动基因
+laml.sig = oncodrive(maf = all_mut, AACol = 'HGVSp_Short', minMut = 5, pvalMethod = 'zscore')
+head(laml.sig)
+#绘制结果
+png(file="plotOncodrive.png", width=8, height=8, units = "in", res = 800)
+plotOncodrive(res = laml.sig, fdrCutOff = 0.1, useFraction = TRUE, labelSize = 0.5)
+dev.off()
+
+#药物-基因相互作用
+png(file="drugInteractions.png", width=8, height=8, units = "in", res = 800)
+dgi = drugInteractions(maf = all_mut, fontSize = 0.75)
+dev.off()
+#变异签名
+library("BSgenome.Hsapiens.UCSC.hg19", quietly = TRUE)
+laml.tnm = trinucleotideMatrix(maf = all_mut, prefix = 'chr', add = TRUE, ref_genome = "BSgenome.Hsapiens.UCSC.hg19")
+#APOBEC富集和非富集样品之间的差异
+plotApobecDiff(tnm = laml.tnm, maf = laml, pVal = 0.2)
