@@ -63,8 +63,8 @@ gene_count <- data.frame(gene=rownames(mat_0_1),
 
 colnames(gene_count)[1] = "Gene"
 colnames(gene_count)[2] = "Num"
-#write.table(gene_count,'geneMut.txt', sep="\t", quote=F, row.names = F)
-#write.mafSummary(maf = all_mut,basename = "input")
+write.table(gene_count,'geneMut.txt', sep="\t", quote=F, row.names = F)
+write.mafSummary(maf = all_mut,basename = "input")
 
 #绘制瀑布图oncoplot
 #missense_mutation:错义突变 frame_shift_del：移码缺失突变 
@@ -76,9 +76,9 @@ png(file="plotmafSummary.png", width=15, height=15, units = "in", res = 800)
 plotmafSummary(maf = all_mut, rmOutlier = TRUE, addStat = 'median', dashboard = TRUE, titvRaw = FALSE)
 dev.off()
 
-png(file="oncoplot.png", width=15, height=15, units = "in", res = 800)
+png(file="oncoplot.png", width=15, height=25, units = "in", res = 800)
 oncoplot(maf = all_mut,
-         top = 30, #显示前30个的突变基因信息
+         top = 100, #显示前30个的突变基因信息
          fontSize = 0.6, #设置字体大小
          showTumorSampleBarcodes = F) #不显示病人信息
 dev.off()
