@@ -106,13 +106,13 @@ for (j in group) {
                  "#FF6347","#6A5ACD","#9932CC","#8B008B","#8B4513","#DEB887")
   
   vol <- jjVolcano(diffData = combined_markers,
-            log2FC.cutoff = 0.1, 
-            size  = 3.5, #设置点的大小
-            fontface = 'italic', #设置字体形式
-            aesCol = c('#87CEFA','#EEA2AD'), #设置点的颜色
-            tile.col = color.pals, #设置cluster的颜色
-            #col.type = "adjustP", #设置矫正方式
-            topGeneN = 20 #设置展示topN的基因
+                   log2FC.cutoff = 0.1, 
+                   size  = 3.5, #设置点的大小
+                   fontface = 'italic', #设置字体形式
+                   aesCol = c('#87CEFA','#EEA2AD'), #设置点的颜色
+                   tile.col = color.pals, #设置cluster的颜色
+                   #col.type = "adjustP", #设置矫正方式
+                   topGeneN = 20 #设置展示topN的基因
   )
   
   png(path,units = "in",width = 12,height = 12,res = 600)
