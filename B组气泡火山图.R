@@ -50,7 +50,7 @@ for (i in group) {
   pbmc@meta.data$group <- droplevels(pbmc@meta.data$group)
   gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
   gene <- c(gene$gene)
-  plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/气泡再生基因_",i,".png", sep = "")
+  plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/seurat_clusters_fabp1_",i,".pdf", sep = "")
   plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 8)+
     theme_bw()+
     theme(panel.grid = element_blank(), 
@@ -58,15 +58,30 @@ for (i in group) {
     labs(x=NULL,y=NULL)+guides(size=guide_legend(order=3))+
     scale_color_gradientn(values = seq(0,1,0.2),colours = c('#330066','#336699','#66CC66','#FFCC33')) +
     scale_y_discrete(limits = rev(levels(pbmc@meta.data$seurat_clusters)))
-  png(plotfile, width = 8, height = 4, units = "in", res = 1000)
+  pdf(plotfile, width = 8, height = 5)
   print(plot)
   dev.off()
 }
-
+#分组
 gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- c(gene$gene)
-plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/气泡再生基因_ccn",".pdf", sep = "")
-plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 8)+
+plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/气泡再生基因_group",".pdf", sep = "")
+plot <- DotPlot(pbmc, features = gene,group.by = 'group',dot.scale = 16)+
+  theme_bw()+
+  theme(panel.grid = element_blank(), 
+        axis.text.x=element_text(hjust = 1, vjust=0.5, angle=90))+
+  labs(x=NULL,y=NULL)+guides(size=guide_legend(order=3))+
+  scale_color_gradientn(values = seq(0,1,0.2),colours = c('#330066','#336699','#66CC66','#FFCC33')) +
+  scale_y_discrete(limits = rev(levels(pbmc@meta.data$group)))
+
+pdf(plotfile, width = 8, height = 5)
+print(plot)
+dev.off()
+#分簇
+gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+gene <- c(gene$gene)
+plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/气泡再生基因_seurat_clusters",".pdf", sep = "")
+plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 16)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
         axis.text.x=element_text(hjust = 1, vjust=0.5, angle=90))+
@@ -188,10 +203,14 @@ for (i in mouse_gene) {
   
 }
 ################################################################################
-gene_name = paste("肝细胞组间","_",'衰老基因集', sep = "")
+gene_name = paste("肝细胞group","_",'Ppara', sep = "")
 #选择seurat对象中有的基因
-mouse_gene <- mouse_gene[mouse_gene %in% rownames(sce)]
-pbmc_hep <- PercentageFeatureSet(sce,features = mouse_gene,col.name = gene_name)
+filepath = "E:/B组数据备份(4.29)/单细胞结果/横向比较/组间/"
+genepath = 'E:/B组数据备份(4.29)/横向比较基因/'
+mouse_gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+mouse_gene <- c(mouse_gene$gene)
+mouse_gene <- mouse_gene[mouse_gene %in% rownames(pbmc)]
+pbmc_hep <- PercentageFeatureSet(pbmc,features = mouse_gene,col.name = gene_name)
 
 factors <- c(levels(pbmc_hep@meta.data$group))
 combinations <- combn(factors, 2) 
@@ -211,4 +230,87 @@ p.percentage <- ggviolin(pbmc_hep@meta.data, x = "group", y = gene_name,
   NoLegend() + labs(x = '')
 pdf(path, width = 8, height = 8)
 print(p.percentage)
+dev.off()
+
+sce <- pbmc
+
+group = c("Ad1R","Bd1R","Bd8R","Bd15R","Bd30R")
+for (i in group) {
+  pbmc <- sce
+  pbmc = pbmc[, pbmc@meta.data$group %in% i]#抽组
+  pbmc@meta.data$group <- droplevels(pbmc@meta.data$group)
+  gene_name = paste("肝细胞","_",i,"_",'Ppara', sep = "")
+  genepath = 'E:/B组数据备份(4.29)/横向比较基因/'
+  mouse_gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+  mouse_gene <- c(mouse_gene$gene)
+  mouse_gene <- mouse_gene[mouse_gene %in% rownames(pbmc)]
+  pbmc_hep <- PercentageFeatureSet(pbmc,features = mouse_gene,col.name = gene_name)
+  
+  factors <- c(levels(pbmc_hep@meta.data$seurat_clusters))
+  combinations <- combn(factors, 2) 
+  combinations_list <- split(combinations, rep(1:ncol(combinations), each = nrow(combinations)))
+  library(ggpubr)
+  my9color <- c('#5470c6','#91cc75','#fac858','#ee6666','#73c0de')
+  filepath = "E:/B组数据备份(4.29)/单细胞结果/横向比较/组间/"
+  path = paste(filepath,"组间横向比较_",gene_name,".pdf", sep = "")
+  p.percentage <- ggviolin(pbmc_hep@meta.data, x = "seurat_clusters", y = gene_name,
+                           color = "seurat_clusters",add = 'mean_sd',fill = 'seurat_clusters',
+                           add.params = list(color = "black")) + 
+    stat_compare_means(comparisons = combinations_list,label = "p.signif") + 
+    scale_color_manual(values = my9color) + 
+    scale_fill_manual(values = my9color) +
+    theme(axis.text.x.bottom = element_text(angle = 90,vjust = 0.5,hjust = 1)) +
+    #ylim(-0.2, 0.1) +
+    NoLegend() + labs(x = '')
+  pdf(path, width = 8, height = 8)
+  print(p.percentage)
+  dev.off()
+}
+
+###
+#细胞比例
+library(cowplot)
+
+filepath <- paste("E:/B组数据备份(4.29)/鉴定后总样本备份/",'all_sample_decontX035_pc30',".RDS", sep = "")
+pbmc <- readRDS(filepath)
+
+cluster <- levels(pbmc@meta.data$seurat_clusters)
+dif_cluster <- c("Hepatocytes","Endothelial cells","Hepatic stellate cells","Biliary epithelial cells","Erythrocyte cells")
+cluster_filtered <- cluster[!cluster %in% dif_cluster]
+
+pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% cluster_filtered]#抽组
+pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
+
+pbmc$celltype <- Idents(pbmc)
+group_b = c("Ad1R","Bd1R","Bd8R","Bd15R","Bd30R")
+group_c = c("Bd30R","Bd15R","Bd8R","Bd1R","Ad1R")
+#随机生成14个色彩鲜明的颜色
+library(RColorBrewer)
+colors = brewer.pal(14, "Set3")#集合只有12个颜色
+colors <- c(colors, "black")
+colors <- c(colors, "white")
+
+cluster_id <- levels(pbmc)
+theme_set(theme_cowplot())
+result <- setNames( colors,cluster_id)
+print(result)
+
+pbmc@meta.data$celltype <- ordered(pbmc@meta.data$celltype, 
+                                   levels = cluster_id)
+cell <- subset(pbmc, subset = celltype %in% cluster_id)
+cell <- ScaleData(cell)
+cell_counts <- FetchData(cell, vars = c("celltype","group","orig.ident")) %>%
+  mutate(group = factor(group, levels = group_c))
+cell_counts_tbl <- cell_counts %>%
+  dplyr::count(celltype,group)
+write_csv(cell_counts_tbl, path = "E:/B组数据备份(4.29)/单细胞结果/细胞比例/cell_counts_910.csv")
+#比例图
+#png("E:/B组数据备份(4.29)/单细胞结果/细胞比例/B组细胞比例(9.10).tiff",units = "in",width = 20,height = 8,res = 600)
+pdf("E:/B组数据备份(4.29)/单细胞结果/细胞比例/B组细胞比例(9.10).pdf",width = 20,height = 8)
+ggplot(data = cell_counts, aes(x = group, fill = celltype)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = result) +
+  coord_flip() +
+  scale_y_reverse()+theme(legend.text = element_text(size = 20),text=element_text(size=20),
+                          axis.text = element_text(size=15))
 dev.off()
