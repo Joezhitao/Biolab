@@ -2013,7 +2013,7 @@ data=data[samSample,"Type",drop=F]
 cli=cli[samSample,,drop=F]
 rt=cbind(data, cli)
 #rt 9到22列转为factor
-for(i in 1:19){
+for(i in 1:17){
   rt[,i]=factor(rt[,i])
 }
 #对临床性状进行循环，观察临床性状在高低表达组之间是否具有差异

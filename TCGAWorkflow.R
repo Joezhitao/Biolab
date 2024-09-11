@@ -204,9 +204,9 @@ library(pathview)
 # pathway.id: hsa05214 is the glioma pathway
 # limit: sets the limit for gene expression legend and color
 	
-hsa04014 <- pathview::pathview(
+hsa04310 <- pathview::pathview(
   gene.data  = genelistDEGs,
-  pathway.id = "hsa04014",
+  pathway.id = "hsa04310",
   species    = "hsa",
   limit = list(gene = as.integer(max(abs(genelistDEGs))))
 )
