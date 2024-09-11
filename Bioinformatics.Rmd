@@ -772,6 +772,75 @@ for (i in geneList0) {
   dev.off()
 }
 ```
+## 以基因高低表达做差异基因
+```{r Differential_gene_analysis_edgeR, message=TRUE, warning=TRUE, include=FALSE}
+library(limma)
+library(pheatmap)
+library(stringr)
+library(DESeq2)
+
+# 设置工作目录
+setwd("E:/CRC")
+
+# 读取输入文件
+data = read.table("TCGA_CRC_count.txt", header = TRUE, sep = "\t", check.names = FALSE, row.names = 1)
+
+# 转化为matrix
+dimnames = list(rownames(data), colnames(data))
+data = matrix(as.numeric(as.matrix(data)), nrow = nrow(data), dimnames = dimnames)
+
+# 去除低表达的基因
+data = data[rowMeans(data) > 1, ]
+
+# 提取TBC1D16基因的表达值
+tbc1d16_expression = data["TBC1D16", ]
+
+# 确定高低表达的阈值，可以使用中位数或其他统计量
+threshold = median(tbc1d16_expression, na.rm = TRUE)
+
+# 根据阈值将样本分为高表达和低表达
+group = ifelse(tbc1d16_expression > threshold, "High", "Low")
+
+# 分组矩阵
+condition = factor(group)
+coldata <- data.frame(row.names = colnames(data), condition)
+
+# 构建DESeq2数据集
+dds <- DESeqDataSetFromMatrix(countData = data,
+                              colData = coldata,
+                              design = ~condition)
+
+# 查看分组
+dds$condition
+
+# 指定哪一组作为对照组
+dds$condition <- relevel(dds$condition, ref = "Low")
+
+# 差异表达分析
+dds <- DESeq(dds)
+allDEG2 <- as.data.frame(results(dds))
+
+# 筛选差异基因
+padj = 0.05
+logFC = 1
+outdiff = allDEG2[(allDEG2$padj < padj &
+                   (allDEG2$log2FoldChange > logFC | allDEG2$log2FoldChange < (-logFC))), ]
+
+# 保存结果
+write.table(data.frame(ID = rownames(outdiff), outdiff),
+            file = "E:/CRC/TBC1D16_High_Low.diff.DESeq2.txt",
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
+# 添加变化类型
+allDEG2$gene <- rownames(allDEG2)
+allDEG2$log2FoldChange = as.numeric(as.vector(allDEG2$log2FoldChange))
+allDEG2$change = ifelse(allDEG2$padj < 0.05 & abs(allDEG2$log2FoldChange) >= 1, 
+                        ifelse(allDEG2$log2FoldChange > 1, 'Up', 'Down'),
+                        'Stable')
+
+```
+
+
 
 ## 火山图
 ```{r volcano, message=TRUE, warning=TRUE, include=FALSE}
