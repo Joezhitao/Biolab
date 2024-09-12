@@ -63,9 +63,15 @@ for (i in group) {
   dev.off()
 }
 #分组
+close()
+levels(pbmc@meta.data$seurat_clusters)
+cluster <- c("Hepatocytes_3")
+pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% cluster]#抽组
+pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
+
 gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- c(gene$gene)
-plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/气泡再生基因_group",".pdf", sep = "")
+plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/Hepatocytes_3_group",".pdf", sep = "")
 plot <- DotPlot(pbmc, features = gene,group.by = 'group',dot.scale = 16)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
