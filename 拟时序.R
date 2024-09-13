@@ -152,7 +152,7 @@ expr.genes <- fData(Mono.cds)$gene_short_name[fData(Mono.cds)$use_for_ordering]
 Mono.cds <- Mono.cds %>% 
   setOrderingFilter(ordering_genes = expr.genes) %>% 
   reduceDimension(max_components = 2, method = "DDRTree") %>% 
-  orderCells()
+  orderCells(reverse = T)
 
 #pic
 pic_plot_ordering_genes <- plot_ordering_genes(Mono.cds)

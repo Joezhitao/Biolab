@@ -84,10 +84,12 @@ pdf(plotfile, width = 8, height = 5)
 print(plot)
 dev.off()
 #分簇
-gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+filepath = "E:/B_group/单细胞结果/横向比较/组间/"
+genepath = 'E:/B_group/gene/'
+gene <- read.xlsx(paste0(genepath,"gene.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- c(gene$gene)
-plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/气泡再生基因_seurat_clusters",".pdf", sep = "")
-plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 16)+
+plotfile <- paste("E:/B_group/气泡图/气泡_seurat_clusters",".pdf", sep = "")
+plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 12)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
         axis.text.x=element_text(hjust = 1, vjust=0.5, angle=90))+
@@ -95,7 +97,7 @@ plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 1
   scale_color_gradientn(values = seq(0,1,0.2),colours = c('#330066','#336699','#66CC66','#FFCC33')) +
   scale_y_discrete(limits = rev(levels(pbmc@meta.data$seurat_clusters)))
 
-pdf(plotfile, width = 8, height = 5)
+pdf(plotfile, width = 18, height = 6)
 print(plot)
 dev.off()
 
