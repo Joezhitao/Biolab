@@ -695,9 +695,9 @@ allDEG2$change = ifelse(allDEG2$padj < 0.05 & abs(allDEG2$log2FoldChange) >= 1,
 #热图
 #设置展示基因的数目
 geneNum=50
-outDiff$gene <- rownames(outDiff)
-outDiff=outDiff[order(as.numeric(as.vector(outDiff$logFC))),]
-diffGeneName=as.vector(outDiff[,7])
+outdiff$gene <- rownames(outdiff)
+outdiff=outdiff[order(as.numeric(as.vector(outdiff$logFC))),]
+diffGeneName=as.vector(outdiff[,7])
 diffLength=length(diffGeneName)
 hmGene=c()
 if(diffLength>(2*geneNum)){
@@ -772,6 +772,75 @@ for (i in geneList0) {
   dev.off()
 }
 ```
+## 以基因高低表达做差异基因
+```{r Differential_gene_analysis_edgeR, message=TRUE, warning=TRUE, include=FALSE}
+library(limma)
+library(pheatmap)
+library(stringr)
+library(DESeq2)
+
+# 设置工作目录
+setwd("E:/CRC")
+
+# 读取输入文件
+data = read.table("TCGA_CRC_count.txt", header = TRUE, sep = "\t", check.names = FALSE, row.names = 1)
+
+# 转化为matrix
+dimnames = list(rownames(data), colnames(data))
+data = matrix(as.numeric(as.matrix(data)), nrow = nrow(data), dimnames = dimnames)
+
+# 去除低表达的基因
+data = data[rowMeans(data) > 1, ]
+
+# 提取TBC1D16基因的表达值
+tbc1d16_expression = data["TBC1D16", ]
+
+# 确定高低表达的阈值，可以使用中位数或其他统计量
+threshold = median(tbc1d16_expression, na.rm = TRUE)
+
+# 根据阈值将样本分为高表达和低表达
+group = ifelse(tbc1d16_expression > threshold, "High", "Low")
+
+# 分组矩阵
+condition = factor(group)
+coldata <- data.frame(row.names = colnames(data), condition)
+
+# 构建DESeq2数据集
+dds <- DESeqDataSetFromMatrix(countData = data,
+                              colData = coldata,
+                              design = ~condition)
+
+# 查看分组
+dds$condition
+
+# 指定哪一组作为对照组
+dds$condition <- relevel(dds$condition, ref = "Low")
+
+# 差异表达分析
+dds <- DESeq(dds)
+allDEG2 <- as.data.frame(results(dds))
+
+# 筛选差异基因
+padj = 0.05
+logFC = 1
+outdiff = allDEG2[(allDEG2$padj < padj &
+                   (allDEG2$log2FoldChange > logFC | allDEG2$log2FoldChange < (-logFC))), ]
+
+# 保存结果
+write.table(data.frame(ID = rownames(outdiff), outdiff),
+            file = "E:/CRC/TBC1D16_High_Low.diff.DESeq2.txt",
+            sep = "\t", row.names = FALSE, quote = FALSE)
+
+# 添加变化类型
+allDEG2$gene <- rownames(allDEG2)
+allDEG2$log2FoldChange = as.numeric(as.vector(allDEG2$log2FoldChange))
+allDEG2$change = ifelse(allDEG2$padj < 0.05 & abs(allDEG2$log2FoldChange) >= 1, 
+                        ifelse(allDEG2$log2FoldChange > 1, 'Up', 'Down'),
+                        'Stable')
+
+```
+
+
 
 ## 火山图
 ```{r volcano, message=TRUE, warning=TRUE, include=FALSE}
@@ -1185,7 +1254,7 @@ dir.create(file.path(base_dir, "GO"), showWarnings = FALSE)  # 创建 "E:/CRC/un
 dir.create(file.path(base_dir, "GO", "single_gene"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
 save_dir <- file.path(base_dir, "GO", "single_gene")
 #读入指定基因
-input_gene=c("CPT2","GAL","GRM4")
+input_gene=c("TBC1D16")
 #input_gene=rownames(data)
 for (i in input_gene) {
   # 将gene symbol转换为基因id
@@ -1216,6 +1285,7 @@ for (i in input_gene) {
   
   GO = as.data.frame(kk)
   GO = GO[(GO$pvalue < pvalueFilter),]
+  write.table(GO, file=paste0(base_dir,"/","GO_base_on_unicox.txt"), sep="\t", quote=F, row.names = F)
   eGo <- GO
   eGo <- separate(data=eGo, col=GeneRatio, into=c("GR1", "GR2"), sep="/")
   eGo <- separate(data=eGo, col=BgRatio, into=c("BR1", "BR2"), sep="/")
@@ -1347,8 +1417,8 @@ dir.create(file.path(base_dir, "KEGG"), showWarnings = FALSE)  # 创建 "E:/CRC/
 dir.create(file.path(base_dir, "KEGG", "single_gene"), showWarnings = FALSE)  # 创建 "E:/CRC/uniCox/limma" 文件夹
 save_dir <- file.path(base_dir, "KEGG", "single_gene")
 #读入指定基因
-input_gene=c("CPT2","GAL","GRM4")
-for (i in input_gene) {
+gene_ppi = c('CARD14', 'CDC16', 'PPM1L', 'RAB4A', 'TBC1D1', 'TBC1D16', 'TBC1D19', 'TBC1D20')
+for (i in gene_ppi) {
   # 将gene symbol转换为基因id
   entrezIDs = mget(i, org.Hs.egSYMBOL2EG, ifnotfound = NA)
   entrezIDs = as.character(entrezIDs)
@@ -1358,8 +1428,8 @@ for (i in input_gene) {
   gene = gsub("c\\(\"(\\d+)\".*", "\\1", gene)
   # 筛选条件
   pvalueFilter = 0.05
-  qvalueFilter = 1       
-  if (qvalueFilter > 0.05) {
+  qvalueFilter = 0.1       
+  if (qvalueFilter > 1) {
     colorSel = "pvalue"
   } else {
     colorSel = "qvalue"
@@ -1386,15 +1456,31 @@ for (i in input_gene) {
   # 定义显示通路的数目
   showNum = 20
   # 柱状图
-  bar <- barplot(kk, drop = TRUE, showCategory = showNum, label_format = 130, color = colorSel)
-  png(file = paste0(save_dir, "/", i, "_KEGGbarplot.png"), width = 7, height = 7, res = 600, units = "in")
-  print(bar)
-  dev.off()
-  # 气泡图
-  dot <- dotplot(kk, showCategory = showNum, orderBy = "GeneRatio", label_format = 130, color = colorSel)
-  png(file = paste0(save_dir, "/", i, "_KEGGbubble.png"), width = 7, height = 7, res = 600, units = "in")
-  print(dot)
-  dev.off()
+  # 在绘图之前检查 KEGG 数据框
+  if (nrow(KEGG) > 0) {
+    # 确保 pvalue 和 qvalue 没有 NA
+    KEGG = KEGG[!is.na(KEGG$pvalue) & !is.na(KEGG$qvalue), ]
+    
+    # 确保 KEGG 数据框中有数据
+    if (nrow(KEGG) > 0) {
+      # 柱状图
+      bar <- barplot(kk, drop = TRUE, showCategory = showNum, label_format = 130, color = colorSel)
+      pdf(file = paste0(save_dir, "/", i, "_KEGGbarplot.pdf"), width = 7, height = 7)
+      print(bar)
+      dev.off()
+      
+      # 气泡图
+      dot <- dotplot(kk, showCategory = showNum, orderBy = "GeneRatio", label_format = 130, color = colorSel)
+      pdf(file = paste0(save_dir, "/", i, "_KEGGbubble.pdf"), width = 7, height = 7)
+      print(dot)
+      dev.off()
+      } else {
+        message("No significant pathways found for gene ", i)
+      }
+    } else {
+      message("No KEGG enrichment results for gene ", i)
+    }
+
 }
 
 ```
@@ -1798,41 +1884,79 @@ library("ggpubr")
 base_dir <- "E:/CRC"
 setwd(base_dir)
 #读取输入文件
-data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
-#转化为matrix
-dimnames=list(rownames(data), colnames(data))
-data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
-#去除低表达的基因
-data=data[rowMeans(data)>1,]
-#提取正常和肿瘤样品表达量
-group=sapply(strsplit(colnames(data),"\\-"),"[",4)
-group=sapply(strsplit(group,""),"[",1)
-normal=data[,group!=0]
-tumor=data[,group==0]
-#设置需要提取的基因名称
-gene = "GRM4"
-#对正常数据进行整理
-normal=rbind(normal,gene=normal[gene,])
-normal=as.matrix(t(normal[c("gene",gene),]))
-rownames(normal)=gsub("(.*?)\\-(.*?)\\-(.*?)\\-(.*?)\\-.*","\\1\\-\\2\\-\\3",rownames(normal))
-#对肿瘤数据进行整理
-tumor=rbind(tumor,gene=tumor[gene,])
-tumor=as.matrix(t(tumor[c("gene",gene),]))
-rownames(tumor)=gsub("(.*?)\\-(.*?)\\-(.*?)\\-(.*?)\\-.*","\\1\\-\\2\\-\\3",rownames(tumor))
-#合并数据
-samSample=intersect(row.names(normal),row.names(tumor))
-normal=normal[samSample,]
-tumor=tumor[samSample,]
-data=cbind(normal,tumor)
-data=as.data.frame(data[,c(1,3)])
-colnames(data)=c("Normal","Tumor")
-#绘制图形
-#pdf(file="pairDiff.pdf",width=5.5,height=5)
-png(file="E:/CRC/diff/pairDiff.png",width=5.5,height=5,units="in",res=600)
-ggpaired(data, cond1 = "Normal", cond2 = "Tumor",fill = c("red","blue"), palette = "jco",
-         xlab="",ylab = paste0(gene," expression"))+
-  stat_compare_means(paired = TRUE, label = "p.format", label.x = 1.35)
-dev.off()
+# 读取数据并进行初步处理
+data = read.table("TCGA_CRC_count.txt", header = TRUE, sep = "\t", check.names = FALSE, row.names = 1)
+dimnames = list(rownames(data), colnames(data))
+data = matrix(as.numeric(as.matrix(data)), nrow = nrow(data), dimnames = dimnames)
+
+# 去除低表达的基因
+data = data[rowMeans(data) > 1, ]
+
+# 提取正常和肿瘤样品表达量
+group = sapply(strsplit(colnames(data), "\\-"), "[", 4)
+group = sapply(strsplit(group, ""), "[", 1)
+normal = data[, group != 0]
+tumor = data[, group == 0]
+
+# 基因列表
+gene_ppi = c('CARD14', 'CDC16', 'PPM1L', 'RAB4A', 'TBC1D1', 'TBC1D16', 'TBC1D19', 'TBC1D20')
+
+# 循环处理每个基因
+# 循环处理每个基因
+for (i in gene_ppi) {
+  gene = i
+  
+  # 检查基因是否在正常和肿瘤数据中
+  if (!(gene %in% rownames(normal))) {
+    warning(paste("Gene", gene, "not found in normal data"))
+    next
+  }
+  if (!(gene %in% rownames(tumor))) {
+    warning(paste("Gene", gene, "not found in tumor data"))
+    next
+  }
+  
+  # 对正常数据进行整理
+  normal_gene = normal[gene, , drop = FALSE]
+  normal_gene = as.matrix(t(normal_gene))
+  rownames(normal_gene) = gsub("(.*?)\\-(.*?)\\-(.*?)\\-(.*?)\\-.*", "\\1\\-\\2\\-\\3", rownames(normal_gene))
+  
+  # 对肿瘤数据进行整理
+  tumor_gene = tumor[gene, , drop = FALSE]
+  tumor_gene = as.matrix(t(tumor_gene))
+  rownames(tumor_gene) = gsub("(.*?)\\-(.*?)\\-(.*?)\\-(.*?)\\-.*", "\\1\\-\\2\\-\\3", rownames(tumor_gene))
+  
+  # 合并数据
+  samSample = intersect(rownames(normal_gene), rownames(tumor_gene))
+  
+  # 检查是否有交集样本
+  if (length(samSample) == 0) {
+    warning(paste("No common samples for gene", gene))
+    next
+  }
+  
+  normal_gene = normal_gene[samSample, , drop = FALSE]
+  tumor_gene = tumor_gene[samSample, , drop = FALSE]
+  data_combined = cbind(normal_gene, tumor_gene)
+  
+  # 确保数据框的列数足够
+  if (ncol(data_combined) < 2) {
+    warning(paste("Insufficient data for gene", gene))
+    next
+  }
+  
+  data_combined = as.data.frame(data_combined[, c(1, 2)])
+  colnames(data_combined) = c("Normal", "Tumor")
+  
+  # 绘制图形
+  ppiplot <- ggpaired(data_combined, cond1 = "Normal", cond2 = "Tumor", fill = c("red", "blue"), palette = "jco",
+           xlab = "", ylab = paste0(gene, " expression")) +
+    stat_compare_means(paired = TRUE, label = "p.format", label.x = 1.35)
+  pdf(file = paste0("E:/CRC/TBC1D16/ppidiff/pairDiff_", i, ".pdf"), width = 5.5, height = 5)
+  print(ppiplot)
+  dev.off()
+}
+
 ```
 
 ## 选取基因绘制临床与基因表达相关性热图
@@ -1889,7 +2013,7 @@ data=data[samSample,"Type",drop=F]
 cli=cli[samSample,,drop=F]
 rt=cbind(data, cli)
 #rt 9到22列转为factor
-for(i in 1:19){
+for(i in 1:17){
   rt[,i]=factor(rt[,i])
 }
 #对临床性状进行循环，观察临床性状在高低表达组之间是否具有差异
@@ -1932,5 +2056,10 @@ pdf(file="TBC1D16_heatmap.pdf", width=25, height=25)
 #png(file="heatmap.png", width=25, height=25, units="in", res=800)
 draw(Hm, merge_legend = TRUE, heatmap_legend_side = "bottom", annotation_legend_side = "bottom")
 dev.off()
+```
+
+## 突变数据分析
+```{r mutation, message=TRUE, warning=TRUE, include=FALSE}
+
 ```
 
