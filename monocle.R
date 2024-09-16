@@ -37,5 +37,9 @@ GM_state <- function(cds){
 }
 cds <- monocle::orderCells(cds, root_state =  GM_state(cds))
 
-monocle::plot_cell_trajectory(cds, color_by = "Pseudotime")
-monocle::plot_cell_trajectory(cds, color_by = "seurat_clusters") 
+pic_trajectory <- monocle::plot_cell_trajectory(cds, color_by = "Pseudotime")|
+  monocle::plot_cell_trajectory(cds, color_by = "seurat_clusters")
+png("E:/B_group/拟时序/Hepatocytes_monocle.png", width = 14, height = 6, units = "in", res = 800)
+print(pic_trajectory)
+dev.off()
+

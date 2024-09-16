@@ -9,6 +9,9 @@ suppressMessages(options(futrue.globlas.Maxsize=2*1024**3))
 suppressWarnings(suppressMessages(future::plan("multisession", workers = 10)))
 library(patchwork)
 
+
+filepath <- paste("E:/B_group/sub_group/",'Endothelial_cells',".RDS", sep = "")
+pbmc <- readRDS(filepath)
 #for循环跑cellchat
 sce <- pbmc
 group <- levels(pbmc@meta.data$group)
@@ -45,7 +48,7 @@ for (i in group) {
     df.net <- subsetCommunication(cellchat)#查看通路信息以及配体受体信息的表格
     groupSize <- as.numeric(table(cellchat@idents))
     par(mfrow = c(1,2), xpd=TRUE)
-    filepath <- paste("E:/C组数据/单细胞结果/cellchat/细胞通讯_",i,"_",j,".png", sep = "")
+    filepath <- paste("E:/B_group/cellchat/Endothelial_cells/细胞通讯_",i,"_",j,".png", sep = "")
     png(filepath, units = "in", width = 10, height = 10, res = 800)
     netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
     dev.off()
