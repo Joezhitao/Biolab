@@ -36,7 +36,7 @@ for (i in mouse_gene) {
   gene_name = paste("肝细胞组间","_",i, sep = "")
   pbmc_hep <- PercentageFeatureSet(pbmc,features = gene,col.name = gene_name)
   path2 = paste(filepath,"UAMP_",gene_name,".png", sep = "")
-  p2 <- FeaturePlot(pbmc_hep,gene_name,pt.size = 0.5)
+  p2 <- FeaturePlot(pbmc_hep,gene_name,pt.size = 1)
   png(path2, width = 4, height = 4, units = "in", res = 800)
   print(p2)
   dev.off()
