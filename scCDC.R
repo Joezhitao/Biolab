@@ -18,8 +18,11 @@ FeaturePlot(pbmc_hep,gene_name,pt.size = 2)
 gene <- read.xlsx("E:/B_group/gene/gene.xlsx",
                   sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- gene$gene
+gene <- gene[gene %in% rownames(pbmc)]
 for (i in gene) {
-  gene_name <- paste("肝细胞_", i, sep = "")
+  k <- gsub("−", "_", i)
+  
+  gene_name <- paste("肝细胞_", k, sep = "")
   pbmc_hep <- PercentageFeatureSet(pbmc, features = i, col.name = gene_name)
   
   # 打开PDF设备
