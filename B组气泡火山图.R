@@ -13,8 +13,8 @@ color.pals = c("#DC143C","#0000FF","#20B2AA","#FFA500","#9370DB","#98FB98","#F08
                "#FF1493","#0000CD","#008B8B","#FFE4B5","#8A2BE2","#228B22","#E9967A","#4682B4","#32CD32","#F0E68C","#FFFFE0","#EE82EE",
                "#FF6347","#6A5ACD","#9932CC","#8B008B","#8B4513","#DEB887")
 
-filepath = "E:/B组数据备份(4.29)/单细胞结果/横向比较/组间/"
-genepath = 'E:/B组数据备份(4.29)/横向比较基因/'
+filepath = "E:/B_group/单细胞结果/横向比较/组间/"
+genepath = 'E:/B_group/gene/'
 
 #seurat对象设置
 filepath <- paste("E:/B组数据备份(4.29)/去污染后细胞亚群备份/",'Hepatocytes',".RDS", sep = "")
@@ -196,20 +196,21 @@ for (i in group) {
 #featureplot
 #每一个基因上跑
 
-mouse_gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+mouse_gene <- read.xlsx(paste0(genepath,"gene.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 mouse_gene <- c(mouse_gene$gene)
 for (i in mouse_gene) {
-  filepath = "E:/B组数据备份(4.29)/单细胞结果/横向比较/组间/"
+  filepath = "E:/B_group/"
   gene <- i
   gene_name = paste("肝细胞组间","_",i, sep = "")
-  pbmc_hep <- PercentageFeatureSet(sce,features = gene,col.name = gene_name)
+  pbmc_hep <- PercentageFeatureSet(pbmc,features = gene,col.name = gene_name)
   path2 = paste(filepath,"UAMP_",gene_name,".pdf", sep = "")
-  p2 <- FeaturePlot(pbmc_hep,gene_name)
-  pdf(path2, width = 8, height = 8)
+  p2 <- FeaturePlot(pbmc_hep,gene_name,pt.size = 1)
+  pdf(path2, width = 5, height = 5)
   print(p2)
   dev.off()
   
 }
+help(FeaturePlot)
 ################################################################################
 gene_name = paste("肝细胞group","_",'Ppara', sep = "")
 #选择seurat对象中有的基因
