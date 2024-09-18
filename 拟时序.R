@@ -5,7 +5,7 @@ library(magrittr)
 library(patchwork)
 library(dplyr)
 
-filepath <- paste("E:/B组数据备份(4.29)/去污染后细胞亚群备份/",'Hepatocytes',".RDS", sep = "")
+filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
 
 levels(pbmc@meta.data$seurat_clusters)
@@ -47,7 +47,7 @@ for (i in group) {
   Mono.cds <- Mono.cds %>% 
     setOrderingFilter(ordering_genes = expr.genes) %>% 
     reduceDimension(max_components = 2, method = "DDRTree") %>% 
-    orderCells()
+    orderCells(reverse = T)
   
   #pic
   pic_plot_ordering_genes <- plot_ordering_genes(Mono.cds)
@@ -152,17 +152,19 @@ expr.genes <- fData(Mono.cds)$gene_short_name[fData(Mono.cds)$use_for_ordering]
 Mono.cds <- Mono.cds %>% 
   setOrderingFilter(ordering_genes = expr.genes) %>% 
   reduceDimension(max_components = 2, method = "DDRTree") %>% 
-  orderCells(reverse = T)
-
+  orderCells(reverse = F)
+help(reduceDimension)
 #pic
 pic_plot_ordering_genes <- plot_ordering_genes(Mono.cds)
-filepath = paste("E:/B组数据备份(4.29)/单细胞结果/拟时序分析/","/","平均表达量",".pdf", sep = "")
+help(plot_ordering_genes)
+help(orderCells)
+filepath = paste("E:/B_group/拟时序/","/","平均表达量",".pdf", sep = "")
 pdf(filepath, width = 8, height = 8)
 print(pic_plot_ordering_genes)
 dev.off()
 
 pic_plot_pc_variance_explained <- plot_pc_variance_explained(Mono.cds, return_all = F)
-filepath = paste("E:/B组数据备份(4.29)/单细胞结果/拟时序分析/","/","pc_variance_explained",".pdf", sep = "")
+filepath = paste("E:/B_group/拟时序/","/","pc_variance_explained",".pdf", sep = "")
 pdf(filepath, width = 8, height = 8)
 print(pic_plot_pc_variance_explained)
 dev.off()
@@ -182,16 +184,21 @@ Mono.cds <- Mono.cds %>%
 suppressWarnings(Mono.cds <- orderCells(Mono.cds, reverse = T))
 #reverse参数根据先验知识更改轨迹图起点
 #pic
+
+# 假设你知道状态 1 是起点
+root_state <- 1
+Mono.cds <- orderCells(Mono.cds, root_state = root_state)
+
 pic_trajectory <- plot_cell_trajectory(Mono.cds, color_by = "seurat_clusters")|
   plot_cell_trajectory(Mono.cds, color_by = "Pseudotime")
-filepath <- paste("E:/B组数据备份(4.29)/单细胞结果/拟时序分析/","/","celltype_Pseudotime",
+filepath <- paste("E:/B_group/拟时序/","/","celltype_Pseudotime",
                   ".pdf", sep = "")
 pdf(filepath, width = 18, height = 6)
 print(pic_trajectory)
 dev.off()
 #State
 pic_trajectory_State <- plot_cell_trajectory(Mono.cds, color_by = "State")
-filepath <- paste("E:/B组数据备份(4.29)/单细胞结果/拟时序分析/","/","State",
+filepath <- paste("E:/B_group/拟时序/","/","State",
                   ".pdf", sep = "")
 pdf(filepath, width = 6, height = 6)
 print(pic_trajectory_State)
@@ -199,7 +206,7 @@ dev.off()
 #separate by celltype
 pic_trajectory_celltype <- plot_cell_trajectory(Mono.cds, color_by = "State") +
   facet_wrap(~seurat_clusters, nrow = 1)
-filepath <- paste("E:/B组数据备份(4.29)/单细胞结果/拟时序分析/","/","sep_by_celltype",
+filepath <- paste("E:/B_group/拟时序/","/","sep_by_celltype",
                   ".pdf", sep = "")
 pdf(filepath, width = 12, height = 4)
 print(pic_trajectory_celltype)
@@ -218,7 +225,7 @@ sig.gene <- row.names(subset(diff_test_res, qval < 0.05))
 #ggsave(filename = filepath, sig.gene_plot, width = 6, height = 6, dpi = 600)
 #numbs是levels(sample@meta.data$seurat_clusters)的个数
 numbs <- length(levels(sample@meta.data$seurat_clusters))
-filepath <- paste("E:/B组数据备份(4.29)/单细胞结果/拟时序分析/","/","sig_200_gene_heatmap",".pdf", sep = "")
+filepath <- paste("E:/B_group/拟时序/","/","sig_200_gene_heatmap",".pdf", sep = "")
 pdf(filepath, width = 10, height = 25)
 plot_pseudotime_heatmap(cds_subset[sig.gene, ], 
                         num_clusters = numbs, 
