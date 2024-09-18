@@ -34,8 +34,9 @@ rno03320 <- pathview::pathview(
   out.suffix = "my_analysis",
   limit = list(gene = as.integer(max(abs(genelistDEGs))))
 )
-help("pathview")
 
+#####################
+#for循环跑不同组与空白组对比的差异基因的pathview图
 
 filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
