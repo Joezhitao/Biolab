@@ -49,8 +49,9 @@ for (i in group) {
     df.net <- subsetCommunication(cellchat)#查看通路信息以及配体受体信息的表格
     groupSize <- as.numeric(table(cellchat@idents))
     par(mfrow = c(1,2), xpd=TRUE)
-    filepath <- paste("E:/B_group/cellchat/Endothelial_cells/细胞通讯_",i,"_",j,".png", sep = "")
-    png(filepath, units = "in", width = 10, height = 10, res = 800)
+    filepath <- paste("E:/B_group/cellchat/C_group_cellchat/细胞通讯_",i,"_",j,".pdf", sep = "")
+    #png(filepath, units = "in", width = 10, height = 10, res = 800)
+    pdf(filepath, width = 10, height = 10)
     netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
     dev.off()
   }
@@ -94,8 +95,9 @@ for (i in sample) {
     df.net <- subsetCommunication(cellchat)#查看通路信息以及配体受体信息的表格
     groupSize <- as.numeric(table(cellchat@idents))
     par(mfrow = c(1,2), xpd=TRUE)
-    filepath <- paste("E:/B_group/cellchat/",i,"/细胞通讯_",i,"_",j,".png", sep = "")
-    png(filepath, units = "in", width = 10, height = 10, res = 800)
+    filepath <- paste("E:/B_group/cellchat/",i,"/细胞通讯_",i,"_",j,".pdf", sep = "")
+    #png(filepath, units = "in", width = 10, height = 10, res = 800)
+    pdf(filepath, width = 10, height = 10)
     netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
     dev.off()
   }

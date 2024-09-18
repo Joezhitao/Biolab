@@ -37,6 +37,10 @@ rno03320 <- pathview::pathview(
 help("pathview")
 
 
+filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
+pbmc <- readRDS(filepath)
+levels(pbmc@meta.data$group)
+
 group <- levels(pbmc@meta.data$group)
 group <- setdiff(group, "Ad1R")
 for (i in group) {
@@ -59,7 +63,7 @@ for (i in group) {
   genelistDEGs <- df_merged$logFC
   names(genelistDEGs) <- df_merged$ENTREZID
   
-  pathway <- c("rno03320","rno04151","rno04064","rno04115","rno04310")
+  pathway <- c("rno04979","rno04920","rno04936","rno04910","rno04152")
   for (j in pathway) {
     setwd("E:/B_group/pathway/")
     rno <- pathview::pathview(
@@ -75,3 +79,4 @@ for (i in group) {
 
 #查看当前路径
 getwd()
+dev.off()
