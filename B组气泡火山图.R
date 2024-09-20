@@ -13,11 +13,11 @@ color.pals = c("#DC143C","#0000FF","#20B2AA","#FFA500","#9370DB","#98FB98","#F08
                "#FF1493","#0000CD","#008B8B","#FFE4B5","#8A2BE2","#228B22","#E9967A","#4682B4","#32CD32","#F0E68C","#FFFFE0","#EE82EE",
                "#FF6347","#6A5ACD","#9932CC","#8B008B","#8B4513","#DEB887")
 
-filepath = "E:/B_group/单细胞结果/横向比较/组间/"
+filepath = "E:/B_group/气泡图/"
 genepath = 'E:/B_group/gene/'
 
 #seurat对象设置
-filepath <- paste("E:/B组数据备份(4.29)/去污染后细胞亚群备份/",'Hepatocytes',".RDS", sep = "")
+filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
 sce <- pbmc
 #抽组
@@ -69,9 +69,9 @@ cluster <- c("Hepatocytes_3")
 pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% cluster]#抽组
 pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
 
-gene <- read.xlsx(paste0(genepath,"5265.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+gene <- read.xlsx(paste0(genepath,"gene.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- c(gene$gene)
-plotfile <- paste("E:/B组数据备份(4.29)/单细胞结果/气泡图/Hepatocytes_3_group",".pdf", sep = "")
+plotfile <- paste("E:/B_group/气泡图/Hepatocytes_group",".png", sep = "")
 plot <- DotPlot(pbmc, features = gene,group.by = 'group',dot.scale = 16)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
@@ -79,8 +79,7 @@ plot <- DotPlot(pbmc, features = gene,group.by = 'group',dot.scale = 16)+
   labs(x=NULL,y=NULL)+guides(size=guide_legend(order=3))+
   scale_color_gradientn(values = seq(0,1,0.2),colours = c('#330066','#336699','#66CC66','#FFCC33')) +
   scale_y_discrete(limits = rev(levels(pbmc@meta.data$group)))
-
-pdf(plotfile, width = 8, height = 5)
+png(plotfile, width = 5, height = 5, units = "in", res = 800)
 print(plot)
 dev.off()
 #分簇

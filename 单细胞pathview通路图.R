@@ -38,15 +38,24 @@ rno03320 <- pathview::pathview(
 #####################
 #for循环跑不同组与空白组对比的差异基因的pathview图
 
+filepath <- paste("E:/B_group/data_backup/B_group_sample",".RDS", sep = "")
+pbmc <- readRDS(filepath)
+cluster <- c("Hepatocytes","Endothelial cells","Monocyte-derived macrophages",'Kuffer cells',"Hepatic stellate cells")
+pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% cluster]#抽组
+pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
+
+levels(pbmc@meta.data$seurat_clusters)
+
 filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
 levels(pbmc@meta.data$group)
 
 group <- levels(pbmc@meta.data$group)
-group <- setdiff(group, "Ad1R")
+group <- setdiff(group, "Ad1R")  # 移除 "Ad1R" 从 group 中
+
 for (i in group) {
   
-  DEG <- FindMarkers(pbmc, ident.1 = i, ident.2 = "Ad1R", genes.use = NULL,group.by = "group",
+  DEG <- FindMarkers(pbmc, ident.1 = i, ident.2 = "Ad1R", genes.use = NULL, group.by = "group",
                      thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
                      print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf)
   DEG$avg_log2FC
@@ -64,19 +73,24 @@ for (i in group) {
   genelistDEGs <- df_merged$logFC
   names(genelistDEGs) <- df_merged$ENTREZID
   
-  pathway <- c("rno04979","rno04920","rno04936","rno04910","rno04152")
+  pathway <- pathway_liver
   for (j in pathway) {
     setwd("E:/B_group/pathway/")
-    rno <- pathview::pathview(
-      gene.data  = genelistDEGs,
-      pathway.id = j,
-      species    = "rno",
-      out.suffix = paste("_",i,sep = ""),
-      limit = list(gene = as.integer(max(abs(genelistDEGs))))
-    )
-    
+    # 使用 tryCatch 捕获 pathview 的错误
+    tryCatch({
+      rno <- pathview::pathview(
+        gene.data  = genelistDEGs,
+        pathway.id = j,
+        species    = "rno",
+        out.suffix = paste("_", i, sep = ""),
+        limit = list(gene = as.integer(max(abs(genelistDEGs))))
+      )
+    }, error = function(e) {
+      cat("Error in processing pathway", j, "for group", i, ":", conditionMessage(e), "\n")
+    })
   }
 }
+
 
 #进一步提取亚群for循环跑不同组与空白组对比的差异基因的pathview图
 filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
@@ -93,6 +107,7 @@ pathway_liver <- c("rno00010","rno00020","rno04010","rno04151","rno04668","rno04
                    "rno04151","rno04150","rno01521","rno04370","rno04012","rno04068","rno04340","rno04611","rno04610",
                    "rno00061","rno00071","rno00062","rno00100","rno00120","rno00121","rno00564","rno00600","rno00561",
                    "rno04910","rno04979","rno04920","rno04215","rno04142","rno03010")
+pathway_liver <- c("rno04218")
 
 for (k in 1:2) {
   if (k == 1) {
@@ -182,7 +197,7 @@ for (k in 1:2) {
 ##tryCatch 捕获错误
 for (k in 1:2) {
   if (k == 1) {
-    subset <- cluster[3]  # 仅选择 "Hepatocytes_1"
+    subset <- cluster[3]  # 仅选择 "Hepatocytes_3"
     cat("Processing:", subset, "\n")
     pbmc <- sce
     pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% subset] # 抽组
@@ -224,7 +239,7 @@ for (k in 1:2) {
       }
     }
   } else if (k == 2) {
-    subset <- cluster[1:2]  # 选择 "Hepatocytes_2" 和 "Hepatocytes_3"
+    subset <- cluster[1:2]  # 选择 "Hepatocytes_1" 和 "Hepatocytes_2"
     cat("Processing:", paste(subset, collapse = ", "), "\n")
     pbmc <- sce
     pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% subset] # 抽组
@@ -267,3 +282,4 @@ for (k in 1:2) {
     }
   }
 }
+dev.off()
