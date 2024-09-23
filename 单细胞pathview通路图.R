@@ -4,8 +4,20 @@ library(org.Rn.eg.db)
 library(pathview)
 
 filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
+filepath <- paste("E:/B_group/sub_group/",'Hepatic_stellate_cells',".RDS", sep = "")
+filepath <- paste("E:/B_group/data_backup/",'all_sample_decontX035_pc30',".RDS", sep = "")
+filepath <- paste("E:/C_group/data_backup/",'c_group',".RDS", sep = "")
+
+levels(pbmc@meta.data$seurat_clusters)
+
 pbmc <- readRDS(filepath)
+cluster <- c("Hepatic_stellate_cells")
+pbmc <- pbmc[,pbmc@meta.data$seurat_clusters %in% cluster]
+pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
+
 levels(pbmc@meta.data$group)
+group <- levels(pbmc@meta.data$group)
+group <- setdiff(group, c("Cd30R","Cd1R","Cd15R"))  # 移除 "Ad1R" 从 group 中
 
 DEG <- FindMarkers(pbmc, ident.1 = "Bd1R", ident.2 = "Ad1R", genes.use = NULL,group.by = "group",
                    thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
@@ -107,7 +119,7 @@ pathway_liver <- c("rno00010","rno00020","rno04010","rno04151","rno04668","rno04
                    "rno04151","rno04150","rno01521","rno04370","rno04012","rno04068","rno04340","rno04611","rno04610",
                    "rno00061","rno00071","rno00062","rno00100","rno00120","rno00121","rno00564","rno00600","rno00561",
                    "rno04910","rno04979","rno04920","rno04215","rno04142","rno03010")
-pathway_liver <- c("rno04218")
+pathway_liver <- c("rno03320")
 
 for (k in 1:2) {
   if (k == 1) {

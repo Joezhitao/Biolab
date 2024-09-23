@@ -63,7 +63,8 @@ for (i in group) {
   dev.off()
 }
 #分组
-close()
+
+pbmc <- sce
 levels(pbmc@meta.data$seurat_clusters)
 cluster <- c("Hepatocytes_3")
 pbmc = pbmc[, pbmc@meta.data$seurat_clusters %in% cluster]#抽组
@@ -71,7 +72,10 @@ pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
 
 gene <- read.xlsx(paste0(genepath,"gene.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- c(gene$gene)
-plotfile <- paste("E:/B_group/气泡图/Hepatocytes_group",".png", sep = "")
+#选择seurat对象中有的基因
+gene <- gene[gene %in% rownames(pbmc)]
+
+plotfile <- paste("E:/B_group/气泡图/Hepatocytes_3",".png", sep = "")
 plot <- DotPlot(pbmc, features = gene,group.by = 'group',dot.scale = 16)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
@@ -79,7 +83,7 @@ plot <- DotPlot(pbmc, features = gene,group.by = 'group',dot.scale = 16)+
   labs(x=NULL,y=NULL)+guides(size=guide_legend(order=3))+
   scale_color_gradientn(values = seq(0,1,0.2),colours = c('#330066','#336699','#66CC66','#FFCC33')) +
   scale_y_discrete(limits = rev(levels(pbmc@meta.data$group)))
-png(plotfile, width = 5, height = 5, units = "in", res = 800)
+png(plotfile, width = 10, height = 5, units = "in", res = 800)
 print(plot)
 dev.off()
 #分簇
