@@ -19,6 +19,12 @@ genepath = 'E:/B_group/gene/'
 #seurat对象设置
 filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
+levels(pbmc@meta.data$seurat_clusters)
+
+cluster <- c("Hepatocytes_3")
+pbmc <- pbmc[,pbmc@meta.data$seurat_clusters %in% cluster]
+pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
+
 sce <- pbmc
 #抽组
 group = c("Ad1R","Bd1R","Bd8R","Bd15R","Bd30R")
@@ -91,7 +97,8 @@ filepath = "E:/B_group/单细胞结果/横向比较/组间/"
 genepath = 'E:/B_group/gene/'
 gene <- read.xlsx(paste0(genepath,"gene.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
 gene <- c(gene$gene)
-plotfile <- paste("E:/B_group/气泡图/气泡_seurat_clusters",".pdf", sep = "")
+plotfile <- paste("E:/B_group/气泡图/气泡_seurat_clusters",".png", sep = "")
+
 plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 12)+
   theme_bw()+
   theme(panel.grid = element_blank(), 
@@ -100,7 +107,7 @@ plot <- DotPlot(pbmc, features = gene,group.by = 'seurat_clusters',dot.scale = 1
   scale_color_gradientn(values = seq(0,1,0.2),colours = c('#330066','#336699','#66CC66','#FFCC33')) +
   scale_y_discrete(limits = rev(levels(pbmc@meta.data$seurat_clusters)))
 
-pdf(plotfile, width = 18, height = 6)
+png(plotfile, width = 6, height = 4, units = "in", res = 800)
 print(plot)
 dev.off()
 

@@ -28,7 +28,7 @@ for (i in group) {
     rownames_to_column(var = "gene")
   
   pbmc.markers <- pbmc.markers %>% 
-    mutate(cluster = rep(i, nrow(pbmc.markers)), group = rep(j, nrow(pbmc.markers)))# %>%
+    mutate(cluster = rep(i, nrow(pbmc.markers)), group = rep(i, nrow(pbmc.markers)))# %>%
   #group_by(cluster) %>% top_n(n = 20, wt = abs(avg_log2FC) )
   
   combined_table <- bind_rows(combined_table, pbmc.markers) # 将当前子集的数据添加到 combined_table 中
@@ -58,7 +58,7 @@ jjVolcano(diffData = combined_table,
           tile.col = corrplot::COL2('RdYlBu', 15)[4:12],
           size  = 3.5,
           fontface = 'italic',
-          topGeneN = 20,
+          topGeneN = 40,
           polar = T) +
 ylim(-8,10)
 dev.off()
