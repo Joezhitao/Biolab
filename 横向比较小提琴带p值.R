@@ -3,7 +3,7 @@ filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
 levels(pbmc@meta.data$seurat_clusters)
 
-cluster <- c("Hepatocytes_3")
+cluster <- c("Hepatocytes_1","Hepatocytes_2")
 pbmc <- pbmc[,pbmc@meta.data$seurat_clusters %in% cluster]
 pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
 
