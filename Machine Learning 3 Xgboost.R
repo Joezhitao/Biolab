@@ -15,6 +15,7 @@ registerDoParallel(
   )
 )
 
+
 # 读取数据
 # file.choose()
 Heart <- readr::read_csv("F:/Mach_learn_data/data-Heart4cls2.csv")
@@ -610,7 +611,7 @@ lcresult_xgboost %>%
 save(datarecipe_xgboost,
      model_xgboost,
      wk_xgboost,
-     hpgrid_xgboost,  # 如果采用贝叶斯优化则替换为 param_xgboost
+     param_xgboost,  # 如果采用贝叶斯优化则替换为 param_xgboost
      tune_xgboost,
      predtrain_xgboost,
      predtest_xgboost,
