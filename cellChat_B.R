@@ -12,7 +12,16 @@ library(Seurat)
 
 
 filepath <- paste("E:/B_group/data_backup/",'all_sample_decontX035_pc30',".RDS", sep = "")
+filepath <- paste("E:/B_group/sub_group/",'Hepatocytes',".RDS", sep = "")
 pbmc <- readRDS(filepath)
+
+new.cluster.ids <- c("Hep_1_2","Hep_1_2","Hep_3")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc,new.cluster.ids)
+pbmc@meta.data$cluster <- pbmc@meta.data$seurat_clusters
+levels(pbmc@meta.data$seurat_clusters) <- new.cluster.ids
+levels(pbmc@meta.data$seurat_clusters)
+
 #for循环跑cellchat
 sce <- pbmc
 group <- levels(pbmc@meta.data$group)
@@ -49,9 +58,9 @@ for (i in group) {
     df.net <- subsetCommunication(cellchat)#查看通路信息以及配体受体信息的表格
     groupSize <- as.numeric(table(cellchat@idents))
     par(mfrow = c(1,2), xpd=TRUE)
-    filepath <- paste("E:/B_group/cellchat/C_group_cellchat/细胞通讯_",i,"_",j,".pdf", sep = "")
-    #png(filepath, units = "in", width = 10, height = 10, res = 800)
-    pdf(filepath, width = 10, height = 10)
+    filepath <- paste("E:/B_group/cellchat/B_Hep_group_cellchat/细胞通讯_",i,"_",j,".png", sep = "")
+    png(filepath, units = "in", width = 10, height = 10, res = 800)
+    #pdf(filepath, width = 10, height = 10)
     netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
     dev.off()
   }

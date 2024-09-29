@@ -123,6 +123,13 @@ for (i in group) {
 
 }
 
+filepath <- paste("E:/B_group/data_backup/",'all_sample_decontX035_pc30',".RDS", sep = "")
+pbmc <- readRDS(filepath)
+cluster <- c("Kuffer cells","Monocyte derived macrophages")
+pbmc <- pbmc[,pbmc@meta.data$seurat_clusters %in% cluster]
+pbmc@meta.data$seurat_clusters <- droplevels(pbmc@meta.data$seurat_clusters)
+
+levels(pbmc@meta.data$seurat_clusters)
 
 sample <- pbmc
 Mono.cds = sample
@@ -152,7 +159,7 @@ expr.genes <- fData(Mono.cds)$gene_short_name[fData(Mono.cds)$use_for_ordering]
 Mono.cds <- Mono.cds %>% 
   setOrderingFilter(ordering_genes = expr.genes) %>% 
   reduceDimension(max_components = 2, method = "DDRTree") %>% 
-  orderCells(reverse = F)
+  orderCells()
 help(reduceDimension)
 #pic
 pic_plot_ordering_genes <- plot_ordering_genes(Mono.cds)
@@ -184,6 +191,32 @@ Mono.cds <- Mono.cds %>%
 suppressWarnings(Mono.cds <- orderCells(Mono.cds, reverse = T))
 #reverse参数根据先验知识更改轨迹图起点
 #pic
+filepath <- paste("E:/B_group/拟时序/","/","hEP_gene_Pseudotime",
+                  ".png", sep = "")
+png(filepath, width = 16, height = 12, units = "in", res = 800)
+plot_cell_trajectory(Mono.cds, markers = c("Fcgr2a", "Fcgr1a","Cd68","Cd86"), use_color_gradient = TRUE)
+dev.off()
+
+genepath = 'E:/B_group/gene/'
+mouse_gene <- read.xlsx(paste0(genepath,"gene.xlsx", sep = ""),sheetIndex = 1,header = T,encoding = "UTF-8")
+mouse_gene <- c(mouse_gene$gene)
+
+filepath <- paste("E:/B_group/拟时序/","/","gene_MK_1_Pseudotime",
+                  ".png", sep = "")
+png(filepath, width = 25, height = 12, units = "in", res = 800)
+plot_cell_trajectory(Mono.cds, markers = mouse_gene, use_color_gradient = TRUE)
+dev.off()
+
+for (i in mouse_gene) {
+  filepath <- paste("E:/B_group/拟时序/","/","gene_MK_1_Pseudotime_",i,
+                    ".png", sep = "")
+  gene_plot <- plot_cell_trajectory(Mono.cds, markers = i, use_color_gradient = fals)
+  png(filepath, width = 4, height = 4, units = "in", res = 800)
+  print(gene_plot)
+  dev.off()
+}
+
+help(plot_cell_trajectory)
 
 # 假设你知道状态 1 是起点
 root_state <- 1
