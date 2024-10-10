@@ -1,0 +1,198 @@
+---
+title: "R_bio_workflow"
+author: "Joe"
+date: "`2024-10-11`"
+output: 
+  html_document:
+    df_print: paged
+  pdf_document:
+    includes:
+      in_header: header.tex
+    latex_engine: xelatex
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## TCGA数据整理_TPM文件
+
+```{r TCGA_TPM_data, message=TRUE, warning=TRUE, include=FALSE}
+#加载R包
+library(rjson)
+library(tidyverse)
+#设置路径
+setwd("E:/CRC")
+#CART文件名字
+cart_file <- "gdc_download_20240814_054206.318162"
+#json文件名字
+json_file <- "metadata.cart.2024-08-14.json"
+#读入meta.data文件
+json <- jsonlite::fromJSON(json_file)
+#View(json)
+#获取样本名称及文件名称
+sample_id <- sapply(json$associated_entities,function(x){x[,1]})
+#sample_id[1:10]
+file_sample <- data.frame(sample_id,file_name=json$file_name)  
+#View(file_sample)
+#获取counts所在位置
+count_file <- list.files(paste0(cart_file,'/',sep=''),
+                         pattern = '*.tsv',recursive = TRUE)
+#count_file[1:10]
+#获取每个文件名称
+count_file_name <- strsplit(count_file,split='/')
+#count_file_name[1:10]
+count_file_name <- sapply(count_file_name,function(x){x[2]})
+#count_file_name[1:10]
+#构建一个空的数据框
+matrix = data.frame(matrix(nrow=60660,ncol=0))
+#逐个读取及合并
+for (i in 1:length(count_file)){
+  path = paste0(cart_file,'//',count_file[i])   #Counts文件夹名
+  data<- read.delim(path,fill = TRUE,header = FALSE,row.names = 1)
+  colnames(data)<-data[2,]
+  data <-data[-c(1:6),]
+  #3：unstranded,counts；4：stranded_first；5：stranded_second；6：tpm_unstranded；7：fpkm_unstranded；8：fpkm_uq_unstranded
+  #data <- data[3]
+  data <- data[6]
+  #data <- data[7]
+  colnames(data) <- file_sample$sample_id[which(file_sample$file_name==count_file_name[i])]
+  matrix <- cbind(matrix,data)
+}
+#转化为gene_symbol
+path = paste0(cart_file,'//',count_file[1])
+data<- as.matrix(read.delim(path,fill = TRUE,header = FALSE,row.names = 1))
+gene_name <-data[-c(1:6),1]
+#gene_name[1:10]
+matrix0 <- cbind(gene_name,matrix)
+#获取基因类型
+gene_type <- data[-c(1:6),2]
+#gene_type[1:10]
+matrix0 <- cbind(gene_type,matrix0)
+#将gene_name列去除重复的基因，保留基因最大表达量结果,min,mean
+matrix0 <- aggregate( . ~ gene_name,data=matrix0, max)
+table(gene_name)
+#保留mRNA
+matrix0 <- subset(x = matrix0, gene_type == "protein_coding")
+#table(gene_type)
+#将gene_name列设为行名，并转化为导出格式
+rownames(matrix0) <- matrix0[,1]
+matrix0 <- matrix0[,-c(1,2)]
+matrix1 = data.frame(ID=rownames(matrix0),matrix0)
+colnames(matrix1) = gsub('[.]', '-', colnames(matrix1))
+#导出
+write.table(matrix1,'TCGA_CRC_TPM.txt', sep="\t", quote=F, row.names = F)
+#write.table(matrix1,'TCGA_LUSC_count.txt', sep="\t", quote=F, row.names = F)
+```
+
+## TCGA数据整理_COUNT文件
+
+```{r TCGA_COUNT_data, message=TRUE, warning=TRUE, include=FALSE}
+#加载R包
+library(rjson)
+library(tidyverse)
+#设置路径
+setwd("E:/CRC")
+#CART文件名字
+cart_file <- "gdc_download_20240814_054206.318162"
+#json文件名字
+json_file <- "metadata.cart.2024-08-14.json"
+#读入meta.data文件
+#出现报错，注意上面的包是否加载，工作目录下是否存在这个文件，文件是否损坏（先跑示例数据）
+json <- jsonlite::fromJSON(json_file)
+#View(json)
+#获取样本名称及文件名称
+sample_id <- sapply(json$associated_entities,function(x){x[,1]})
+#sample_id[1:10]
+file_sample <- data.frame(sample_id,file_name=json$file_name)  
+#View(file_sample)
+#获取counts所在位置
+count_file <- list.files(paste0(cart_file,'/',sep=''),
+                         pattern = '*.tsv',recursive = TRUE)
+#count_file[1:10]
+#获取每个文件名称
+count_file_name <- strsplit(count_file,split='/')
+#count_file_name[1:10]
+count_file_name <- sapply(count_file_name,function(x){x[2]})
+#count_file_name[1:10]
+#构建一个空的数据框
+matrix = data.frame(matrix(nrow=60660,ncol=0))
+#逐个读取及合并
+#出现报错，注意解压方式（仔细看视频），文件名修改，文件后缀（解压软件）
+for (i in 1:length(count_file)){
+  path = paste0(cart_file,'//',count_file[i])   #Counts文件夹名
+  data<- read.delim(path,fill = TRUE,header = FALSE,row.names = 1)
+  colnames(data)<-data[2,]
+  data <-data[-c(1:6),]
+  #3：unstranded,counts；4：stranded_first；5：stranded_second；6：tpm_unstranded；7：fpkm_unstranded；8：fpkm_uq_unstranded
+  #data <- data[3]
+  data <- data[3]
+  #data <- data[7]
+  colnames(data) <- file_sample$sample_id[which(file_sample$file_name==count_file_name[i])]
+  matrix <- cbind(matrix,data)
+}
+#转化为gene_symbol
+path = paste0(cart_file,'//',count_file[1])
+data<- as.matrix(read.delim(path,fill = TRUE,header = FALSE,row.names = 1))
+gene_name <-data[-c(1:6),1]
+#gene_name[1:10]
+matrix0 <- cbind(gene_name,matrix)
+#获取基因类型
+gene_type <- data[-c(1:6),2]
+#gene_type[1:10]
+matrix0 <- cbind(gene_type,matrix0)
+#将gene_name列去除重复的基因，保留基因最大表达量结果,min,mean
+matrix0 <- aggregate( . ~ gene_name,data=matrix0, max)
+table(gene_name)
+#保留mRNA
+matrix0 <- subset(x = matrix0, gene_type == "protein_coding")
+#table(gene_type)
+#将gene_name列设为行名，并转化为导出格式
+rownames(matrix0) <- matrix0[,1]
+matrix0 <- matrix0[,-c(1,2)]
+matrix1 = data.frame(ID=rownames(matrix0),matrix0)
+colnames(matrix1) = gsub('[.]', '-', colnames(matrix1))
+#导出
+#write.table(matrix1,'TCGA_CORD_TPM.txt', sep="\t", quote=F, row.names = F)
+write.table(matrix1,'TCGA_CRC_count.txt', sep="\t", quote=F, row.names = F)
+```
+
+
+##获取数据基因
+##通过KEGGREST包获取部分相关基因
+
+```{r get_genes, message=TRUE, warning=TRUE, include=FALSE}
+setwd("E:/基因建模/gene/KEGG")
+
+library(KEGGREST)
+
+# 定义路径
+pathways <- c('hsa04370','hsa04151','hsa04010','hsa04330','hsa04350','hsa04310')
+
+# 初始化一个空的数据框用于存储所有基因信息
+all_genes <- data.frame()
+
+# 遍历每个通路
+for (pathway_id in pathways) {
+  # 获取通路信息
+  pathway_info <- keggGet(pathway_id)
+  
+  # 提取基因信息
+  genes <- unlist(lapply(gs[[1]]$GENE, function(x) strsplit(x, ";")[[1]]))
+  
+  genelist <- genes[which((seq_along(genes) %% 3) == 2)]
+  
+  # 将基因信息转换为数据框
+  genelist <-  data.frame(genelist)
+  
+  # 合并到总的数据框中
+  all_genes <- rbind(all_genes, genelist)
+}
+
+# 去除重复的基因
+all_genes <- unique(all_genes)
+
+# 输出到CSV文件
+write.table(all_genes, "genelist.csv", row.names = FALSE, col.names = TRUE, sep = ",", quote = FALSE)
+```
+
