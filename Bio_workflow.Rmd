@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(rjson)
 library(tidyverse)
 #设置路径
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #CART文件名字
 cart_file <- "gdc_download_20240814_054206.318162"
 #json文件名字
@@ -92,7 +92,7 @@ write.table(matrix1,'TCGA_CRC_TPM.txt', sep="\t", quote=F, row.names = F)
 library(rjson)
 library(tidyverse)
 #设置路径
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #CART文件名字
 cart_file <- "gdc_download_20240814_054206.318162"
 #json文件名字
@@ -204,9 +204,9 @@ library("XML")
 library("methods")
 library("tinyarray")
 #设置路径
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #设置一个目录
-dir="E:/CRC/gdc_download_20240814_142022.604604"
+dir="E:/CRC_model/gdc_download_20240814_142022.604604"
 #获取每个样本所在位置
 all_fiels=list.files(path = dir ,pattern='*.xml$',recursive=T)##导入文件
 cl = lapply(all_fiels, function(x){
@@ -243,8 +243,9 @@ library(pheatmap)
 library(stringr)
 library(ggplot2)
 library(ggVolcano)
+library(ggrepel)
 #设置路径
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #TPM文件使用Wilcoxon
 #读取输入文件
 data=read.table("TCGA_CRC_TPM.txt", header=T, sep="\t", check.names=F,row.names = 1)
@@ -298,6 +299,7 @@ outTab$logFC=as.numeric(as.vector(outTab$logFC))
 outTab$change = ifelse(outTab$fdr < 0.05 & abs(outTab$logFC) >= 1, 
                        ifelse(outTab$logFC> 1 ,'Up','Down'),
                        'Stable')
+
 #热图
 #设置展示基因的数目
 geneNum=50
@@ -389,7 +391,7 @@ library(stringr)
 library(edgeR)
 library(ggrepel)
 #设置工作目录
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #读取输入文件
 data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
 #转化为matrix
@@ -543,7 +545,7 @@ library(pheatmap)
 library(stringr)
 library(edgeR)
 #设置工作目录
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #读取输入文件
 data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
 #转化为matrix
@@ -684,7 +686,7 @@ library(pheatmap)
 library(stringr)
 library(DESeq2)
 #设置工作目录
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #读取输入文件
 data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
 #转化为matrix
@@ -733,7 +735,7 @@ allDEG2$change = ifelse(allDEG2$padj < 0.05 & abs(allDEG2$log2FoldChange) >= 1,
 #设置展示基因的数目
 geneNum=50
 outdiff$gene <- rownames(outdiff)
-outdiff=outdiff[order(as.numeric(as.vector(outdiff$logFC))),]
+outdiff=outdiff[order(as.numeric(as.vector(outdiff$log2FoldChange))),]
 diffGeneName=as.vector(outdiff[,7])
 diffLength=length(diffGeneName)
 hmGene=c()
@@ -816,21 +818,104 @@ for (i in geneList0) {
 #加载
 library(VennDiagram)
 #设置工作目录
-setwd("E:/CRC")
+setwd("E:/CRC_model")
 #读取
-data=read.table("TCGA.diff.Wilcoxon.txt", header=F, sep="\t", check.names=F)
-Wilcoxon = data[,1]
-data=read.table("ARG_gene.txt", header=F, sep="\t", check.names=F)
-ARG = data[,1]
+DEG <- c("Wilcoxon","limma","edgeR","DESeq2")
+for (i in DEG) {
+  data=read.table(paste("TCGA.diff.",i,".txt",sep=""), header=F, sep="\t", check.names=F)
+  DEG = data[,1]
+  data=read.table("ARG_gene.txt", header=F, sep="\t", check.names=F)
+  ARG = data[,1]
 
-#画图
-venn.diagram(x = list('ARG' = ARG,'Wilcoxon' = Wilcoxon),
-             filename = 'VN.png',fill = c("darkorange1","green"))
-#交集基因
-intersectGenes = intersect(Wilcoxon,ARG)
+  #画图
+  venn.diagram(x = list('ARG' = ARG,i = DEG),
+             filename = paste("VN_",i,".png",sep = ""),fill = c("darkorange1","green"))
+  #交集基因
+  intersectGenes = intersect(DEG,ARG)
 
-write.table(file="intersectGenes.txt", intersectGenes, sep="\t", quote=F, col.names=F, row.names=F)
+  write.table(file= paste("intersectGenes_",i,".txt",sep = "") , intersectGenes, sep="\t", quote=F, col.names=F, row.names=F)
+}
+```
+
+## Lasso回归
+
+```{r lasso, message=TRUE, warning=TRUE, include=FALSE}
+#加载包
+library("glmnet")
+library("survival")
+# 设置工作目录
+base_dir <- "E:/CRC_model"
+setwd(base_dir)
+#读入生存数据
+cli=read.table("time_CRC.txt", header=T, sep="\t", check.names=F, row.names=1)
+#生存时间以年为单位
+cli$time=cli$time/365
+#读入
+data=read.table("TCGA_CRC_count.txt", header=T, sep="\t", check.names=F,row.names = 1)
+# 读取并合并交集基因
+#DEG_methods <- c("Wilcoxon", "limma", "edgeR", "DESeq2")
+# 读取只有一列且有表头的文件
+DEG_data <- read.table("intersectGenes_DESeq2.txt", header=TRUE, sep="\t", check.names=FALSE, stringsAsFactors=FALSE)
+#转化为matrix
+dimnames=list(rownames(data), colnames(data))
+data=matrix(as.numeric(as.matrix(data)), nrow=nrow(data), dimnames=dimnames)
+#正常和肿瘤数目,第14,15字符,01-09是癌症，10-19是正常，20-29是癌旁
+group=sapply(strsplit(colnames(data),"\\-"), "[", 4)
+group=sapply(strsplit(group,""), "[", 1)
+#仅保留肿瘤样本
+data = data[,group == 0]
+# 从表达数据中提取交集基因
+data = data[DEG_data$ID,]
+#转置
+data=t(data)
+#样本名仅保留前12字符
+rownames(data)=substr(rownames(data),1,12)
+#将.改为-
+rownames(data) = gsub('[.]', '-', rownames(data))
+#获取共同样本
+sameSample=intersect(row.names(data), row.names(cli))
+#提取共同样本
+data=data[sameSample,]
+cli=cli[sameSample,]
+#合并
+rt=cbind(cli, data)
+#设置随机种子，K折交叉验证，每次的数据都是随机的，随机数种子一致，就结果给固定住。
+set.seed(123456)
+#构建lasso回归模型
+x=as.matrix(rt[,c(3:ncol(rt))])
+y=data.matrix(Surv(rt$time, rt$status))
+fit=glmnet(x, y, family="cox", nfolds = 10)
+#c-index
+cvfit <- cv.glmnet(x, y, family = "cox", type.measure = "C", nfolds = 10)
+#pdf("lasso.c-index.pdf")
+png(file="lasso.c-index_limma.png", width=8, height=8, units="in", res=800)
+plot(cvfit)
+abline(v=log(c(cvfit$lambda.min,cvfit$lambda.1se)), lty="dashed")
+dev.off()
+#deviance图形
+cvfit=cv.glmnet(x, y, family="cox", type.measure = "deviance", nfolds = 10)
+#pdf("lasso.cvfit.pdf")
+png(file="lasso.cvfit_limma.png", width=8, height=8, units="in", res=800)
+plot(cvfit)
+abline(v=log(c(cvfit$lambda.min,cvfit$lambda.1se)), lty="dashed")
+dev.off()
+#pdf("lasso.lambda.pdf")
+png(file="lasso.lambda_limma.png", width=8, height=8, units="in", res=800)
+plot(fit, xvar="lambda", label=T)
+abline(v=log(cvfit$lambda.min), lty="dashed")
+dev.off()
+#输出lasso显著基因表达量
+coef=coef(fit, s=cvfit$lambda.min)
+index=which(coef != 0)
+actCoef=coef[index]
+lassoGene=row.names(coef)[index]
+row.names(coef)[index]
+actCoef
+index
+lassoSigExp=rt[,c("time", "status", lassoGene)]
+lassoSigExpOut=cbind(id=row.names(lassoSigExp), lassoSigExp)
+write.table(lassoSigExpOut,file="lasso.SigExp_limma.txt",sep="\t",row.names=F,quote=F)
 ```
 
 
-```{r VENN}
+```{r Lasso, message=TRUE, warning=TRUE, include=FALSE}
