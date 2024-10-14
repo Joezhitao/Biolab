@@ -20,7 +20,7 @@ color.pals = c("#DC143C","#0000FF","#20B2AA","#FFA500","#9370DB","#98FB98","#F08
                "#808000","#FF00FF","#FA8072","#7B68EE","#9400D3","#800080","#A0522D","#D2B48C","#D2691E","#87CEEB","#40E0D0","#5F9EA0",
                "#FF1493","#0000CD","#008B8B","#FFE4B5","#8A2BE2","#228B22","#E9967A","#4682B4","#32CD32","#F0E68C","#FFFFE0","#EE82EE",
                "#FF6347","#6A5ACD","#9932CC","#8B008B","#8B4513","#DEB887")
-plot <- VlnPlot(pbmc, mouse_gene, stack = TRUE,
+plot <- VlnPlot(pbmc, mouse_gene, stack = TRUE,group.by = "group",
                 sort = FALSE, flip = TRUE, cols = color.pals) +
   theme(legend.position = "none")
 
