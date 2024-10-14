@@ -249,14 +249,14 @@ save(predprobtrain_xgboost,
      evaltrain_xgboost,
      predprobtest_xgboost,
      evaltest_xgboost,
-     file = "F:/Mach_learn_data/xgboost.RData")
+     file = "F:/Mach_learn_data/mlr_model/xgboost.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
 learner_xgboost4sadata <- learner_xgboost
 save(traindata4sadata,
      learner_xgboost4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_xgboost.RData")
+     file = "F:/Mach_learn_data/shiny/xgboost.RData")
 
 #############################################
 

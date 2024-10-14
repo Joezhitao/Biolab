@@ -246,7 +246,7 @@ traindata4sadata <- traindata
 learner_enet4sadata <- learner_enet
 save(traindata4sadata,
      learner_enet4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_enet.RData")
+     file = "F:/Mach_learn_data/shiny/enet.RData")
 
 #############################################
 

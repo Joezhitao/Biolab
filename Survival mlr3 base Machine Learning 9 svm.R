@@ -270,14 +270,14 @@ save(predprobtrain_svm,
      evaltrain_svm,
      predprobtest_svm,
      evaltest_svm,
-     file = "F:/Mach_learn_data/svm.RData")
+     file = "F:/Mach_learn_data/mlr_model/svm.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
 learner_svm4sadata <- learner_svm
 save(traindata4sadata,
      learner_svm4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_svm.RData")
+     file = "F:/Mach_learn_data/shiny/svm.RData")
 
 #############################################
 

@@ -253,14 +253,14 @@ save(predprobtrain_rsf,
      evaltrain_rsf,
      predprobtest_rsf,
      evaltest_rsf,
-     file = "F:/Mach_learn_data/rsf.RData")
+     file = "F:/Mach_learn_data/mlr_model/rsf.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
 learner_rsf4sadata <- learner_rsf
 save(traindata4sadata,
      learner_rsf4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_rsf.RData")
+     file = "F:/Mach_learn_data/shiny/rsf.RData")
 
 #############################################
 

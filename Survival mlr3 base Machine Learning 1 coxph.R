@@ -217,14 +217,14 @@ save(predprobtrain_coxph,
      evaltrain_coxph,
      predprobtest_coxph,
      evaltest_coxph,
-     file = "F:/Mach_learn_data/coxph.RData")
+     file = "F:/Mach_learn_data/mlr_model/coxph.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
 learner_coxph4sadata <- learner_coxph
 save(traindata4sadata,
      learner_coxph4sadata,
-     file = "F:/Mach_learn_data/mlr_modelcoxph.RData")
+     file = "F:/Mach_learn_data/shiny/coxph.RData")
 
 #############################################
 

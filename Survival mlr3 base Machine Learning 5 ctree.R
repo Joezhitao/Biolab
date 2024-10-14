@@ -259,7 +259,7 @@ traindata4sadata <- traindata
 learner_ctree4sadata <- learner_ctree
 save(traindata4sadata,
      learner_ctree4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_ctree.RData")
+     file = "F:/Mach_learn_data/shiny/ctree.RData")
 
 #############################################
 

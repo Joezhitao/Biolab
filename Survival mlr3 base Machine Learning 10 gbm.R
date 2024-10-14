@@ -258,14 +258,14 @@ save(predprobtrain_gbm,
      evaltrain_gbm,
      predprobtest_gbm,
      evaltest_gbm,
-     file = "F:/Mach_learn_data/gbm.RData")
+     file = "F:/Mach_learn_data/mlr_model/gbm.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
 learner_gbm4sadata <- learner_gbm
 save(traindata4sadata,
      learner_gbm4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_gbm.RData")
+     file = "F:/Mach_learn_data/shiny/gbm.RData")
 
 #############################################
 

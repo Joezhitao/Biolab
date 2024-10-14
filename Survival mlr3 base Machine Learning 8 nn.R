@@ -274,14 +274,14 @@ save(predprobtrain_nn,
      evaltrain_nn,
      predprobtest_nn,
      evaltest_nn,
-     file = "F:/Mach_learn_data/nn.RData")
+     file = "F:/Mach_learn_data/mlr_model/nn.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
 learner_nn4sadata <- learner_nn
 save(traindata4sadata,
      learner_nn4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_nn.RData")
+     file = "F:/Mach_learn_data/shiny/nn.RData")
 
 #############################################
 

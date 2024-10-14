@@ -226,7 +226,7 @@ traindata4sadata <- traindata
 learner_ridge4sadata <- learner_ridge
 save(traindata4sadata,
      learner_ridge4sadata,
-     file = "F:/Mach_learn_data/mlr_model/shiny_ridge.RData")
+     file = "F:/Mach_learn_data/shiny/ridge.RData")
 
 #############################################
 

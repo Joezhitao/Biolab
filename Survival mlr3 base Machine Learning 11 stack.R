@@ -1,4 +1,3 @@
-##Joe_2024_10_12
 # 加载包
 # library(devtools)
 # devtools::install_github("mlr-org/mlr3proba")
@@ -93,9 +92,6 @@ task_test
 ###################################################
 
 # lasso模型
-# https://mlr3extralearners.mlr-org.com/reference/mlr_learners_surv.cv_glmnet.html
-
-# 模型设定
 learner_lasso <- as_learner(
   po("encode", method = "treatment") %>>%
     lrn(
@@ -104,43 +100,104 @@ learner_lasso <- as_learner(
       alpha = 1
     )
 )
-learner_lasso$id <- "lasso"
 learner_lasso
 
-# 模型训练
+########################
+
+# 决策树
+learner_ctree <- auto_tuner(
+  tuner = tnr(
+    "grid_search", 
+    resolution = 4,
+    batch_size = 4
+  ),
+  learner = lrn(
+    "surv.ctree",
+    alpha = to_tune(c(0.01, 0.05, 0.1)),
+    minbucket = to_tune(5, 25)
+  ),
+  resampling = rsmp("cv", folds = 5),
+  measure = msr("surv.cindex"),
+  terminator = trm("none")
+)
+learner_ctree
+
+########################
+
+# 随机森林
+learner_rsf <- auto_tuner(
+  tuner = tnr(
+    "grid_search", 
+    resolution = 3,
+    batch_size = 3
+  ),
+  learner = lrn(
+    "surv.rfsrc",
+    ntree = to_tune(200, 500),
+    mtry = to_tune(3, 5),
+    nodesize = to_tune(15, 21)
+  ),
+  resampling = rsmp("cv", folds = 5),
+  measure = msr("surv.cindex"),
+  terminator = trm("none")
+)
+learner_rsf
+
+###################################################
+
+# stacking集成
+# 设定
+learner_stack <- as_learner(
+  gunion(
+    list(
+      po("learner_cv", learner_ctree),
+      po("learner_cv", learner_rsf),
+      po("nop")
+    )
+  ) %>>%
+    po("featureunion") %>>%
+    po(
+      "select", 
+      selector = selector_name(c(
+        task_train$feature_names, 
+        "surv.rfsrc.tuned.crank",
+        "surv.ctree.tuned.crank"
+      ))
+    ) %>>%
+    po("encode", method = "treatment") %>>%
+    learner_lasso
+)
+learner_stack
+
+# 训练
 set.seed(42)
-learner_lasso$train(task_train)
-learner_lasso
-
-# 模型概况
-learner_lasso$base_learner()$model$model
-coef(learner_lasso$base_learner()$model$model)
-plot(learner_lasso$base_learner()$model$model)
+learner_stack$train(task_train)
+learner_stack
 
 ###################################################
 
 # 预测训练集
-predtrain_lasso <- learner_lasso$predict(task_train)
-predprobtrain_lasso <- predprob(
-  pred = predtrain_lasso, 
+predtrain_stack <- learner_stack$predict(task_train)
+predprobtrain_stack <- predprob(
+  pred = predtrain_stack, 
   preddata = traindata, 
   etime = "rfstime",
   estatus = "status",
-  model = "lasso", 
+  model = "stack", 
   dataset = "train", 
   timepoints =itps
 )
 
 # 性能指标
-predtrain_lasso$score(measure_sa)
-cindex_bootci(learner_lasso, traindata)
+predtrain_stack$score(measure_sa)
+cindex_bootci(learner_stack, traindata)
 
-evaltrain_lasso <- eval4sa(
-  predprob = predprobtrain_lasso,
+evaltrain_stack <- eval4sa(
+  predprob = predprobtrain_stack,
   preddata = traindata,
   etime = "rfstime",
   estatus = "status",
-  model = "lasso",
+  model = "stack",
   dataset = "train",
   timepoints = itps,
   plotcalimethod = "quantile",  # nne
@@ -148,19 +205,19 @@ evaltrain_lasso <- eval4sa(
   q4quantile = 5,
   cutoff = "median"
 )
-evaltrain_lasso$auc
-evaltrain_lasso$rocplot
-evaltrain_lasso$brierscore
-evaltrain_lasso$brierscoretest
-evaltrain_lasso$calibrationplot
-evaltrain_lasso$riskplot
+evaltrain_stack$auc
+evaltrain_stack$rocplot
+evaltrain_stack$brierscore
+evaltrain_stack$brierscoretest
+evaltrain_stack$calibrationplot
+evaltrain_stack$riskplot
 
 sadca(
-  predprob = predprobtrain_lasso,
+  predprob = predprobtrain_stack,
   preddata = traindata,
   etime = "rfstime",
   estatus = "status",
-  model = "lasso",
+  model = "stack",
   dataset = "train",
   timepoints = itps,
   timepoint = 365, 
@@ -168,26 +225,26 @@ sadca(
 )
 
 # 预测测试集
-predtest_lasso <- learner_lasso$predict(task_test)
-predprobtest_lasso <- predprob(
-  pred = predtest_lasso, 
+predtest_stack <- learner_stack$predict(task_test)
+predprobtest_stack <- predprob(
+  pred = predtest_stack, 
   preddata = testdata, 
   etime = "rfstime",
   estatus = "status",
-  model = "lasso", 
+  model = "stack", 
   dataset = "test", 
   timepoints =itps
 )
 # 性能指标
-predtest_lasso$score(measure_sa)
-cindex_bootci(learner_lasso, testdata)
+predtest_stack$score(measure_sa)
+cindex_bootci(learner_stack, testdata)
 
-evaltest_lasso <- eval4sa(
-  predprob = predprobtest_lasso,
+evaltest_stack <- eval4sa(
+  predprob = predprobtest_stack,
   preddata = testdata,
   etime = "rfstime",
   estatus = "status",
-  model = "lasso",
+  model = "stack",
   dataset = "test",
   timepoints = itps,
   plotcalimethod = "quantile",  # nne
@@ -195,19 +252,19 @@ evaltest_lasso <- eval4sa(
   q4quantile = 5,
   cutoff = "median"
 )
-evaltest_lasso$auc
-evaltest_lasso$rocplot
-evaltest_lasso$brierscore
-evaltest_lasso$brierscoretest
-evaltest_lasso$calibrationplot
-evaltest_lasso$riskplot
+evaltest_stack$auc
+evaltest_stack$rocplot
+evaltest_stack$brierscore
+evaltest_stack$brierscoretest
+evaltest_stack$calibrationplot
+evaltest_stack$riskplot
 
 sadca(
-  predprob = predprobtest_lasso,
+  predprob = predprobtest_stack,
   preddata = testdata,
   etime = "rfstime",
   estatus = "status",
-  model = "lasso",
+  model = "stack",
   dataset = "test",
   timepoints = itps,
   timepoint = 365, 
@@ -215,18 +272,18 @@ sadca(
 )
 
 # 保存结果用于比较
-save(predprobtrain_lasso,
-     evaltrain_lasso,
-     predprobtest_lasso,
-     evaltest_lasso,
-     file = "F:/Mach_learn_data/mlr_model/lasso.RData")
+save(predprobtrain_stack,
+     evaltrain_stack,
+     predprobtest_stack,
+     evaltest_stack,
+     file = "F:/Mach_learn_data/mlr_model/stack.RData")
 
 # 保存结果用于shiny网页计算器
 traindata4sadata <- traindata
-learner_lasso4sadata <- learner_lasso
+learner_stack4sadata <- learner_stack
 save(traindata4sadata,
-     learner_lasso4sadata,
-     file = "F:/Mach_learn_data/shiny/lasso.RData")
+     learner_stack4sadata,
+     file = "F:/Mach_learn_data/shiny/stack.RData")
 
 #############################################
 
@@ -249,26 +306,27 @@ newdata <- newdata %>%
 skimr::skim(newdata)
 
 # 预测
-prednew_lasso <- learner_lasso$predict_newdata(newdata)
-predprobnew_lasso <- predprob(
-  pred = prednew_lasso, 
+prednew_stack <- learner_stack$predict_newdata(newdata)
+predprobnew_stack <- predprob(
+  pred = prednew_stack, 
   preddata = newdata, 
   etime = "rfstime",
   estatus = "status",
-  model = "lasso", 
+  model = "stack", 
   dataset = "new", 
   timepoints =itps
 )
 
 # 性能指标
-prednew_lasso$score(measure_sa)
-cindex_bootci(learner_lasso, newdata)
-evalnew_lasso <- eval4sa(
-  predprob = predprobnew_lasso,
+prednew_stack$score(measure_sa)
+cindex_bootci(learner_stack, newdata)
+
+evalnew_stack <- eval4sa(
+  predprob = predprobnew_stack,
   preddata = newdata,
   etime = "rfstime",
   estatus = "status",
-  model = "lasso",
+  model = "stack",
   dataset = "new",
   timepoints = itps,
   plotcalimethod = "quantile",  # nne
@@ -276,89 +334,22 @@ evalnew_lasso <- eval4sa(
   q4quantile = 5,
   cutoff = "median"
 )
-evalnew_lasso$auc
-evalnew_lasso$rocplot
-evalnew_lasso$brierscore
-evalnew_lasso$brierscoretest
-evalnew_lasso$calibrationplot
-evalnew_lasso$riskplot
+evalnew_stack$auc
+evalnew_stack$rocplot
+evalnew_stack$brierscore
+evalnew_stack$brierscoretest
+evalnew_stack$calibrationplot
+evalnew_stack$riskplot
 sadca(
-  predprob = predprobnew_lasso,
+  predprob = predprobnew_stack,
   preddata = newdata,
   etime = "rfstime",
   estatus = "status",
-  model = "lasso",
+  model = "stack",
   dataset = "new",
   timepoints = itps,
   timepoint = 365, 
   xrange = 0:100 / 100
 )
 
-#############################################
 
-# 模型解释
-# 原始训练样本中自变量和因变量
-traindatax <- traindata[, task_train$feature_names]
-catvars <- 
-  colnames(traindatax)[sapply(traindatax, is.factor)]
-convars <- setdiff(colnames(traindatax), catvars)
-traindatay <- survival::Surv(
-  time = traindata$rfstime, 
-  event = traindata$status
-)
-
-# 解释器——基于训练集，可以不指定时间点
-exper_lasso <- survex::explain_survival(
-  learner_lasso, 
-  data = traindatax,
-  y = traindatay,
-  predict_function = risk_pred,
-  predict_survival_function = surv_pred,
-  predict_cumulative_hazard_function = chf_pred,
-  label = "lasso",
-  times = itps
-)
-
-# 变量重要性
-viplot(exper_lasso, output_type = "risk")
-viplot(exper_lasso, output_type = "survival")
-
-# 偏依赖图
-pdplot(exper_lasso, convars, output_type = "survival")
-pdplot(exper_lasso, convars, output_type = "chf")
-pdplot(exper_lasso, convars, output_type = "risk")
-pdplot(exper_lasso, catvars, output_type = "survival")
-pdplot(exper_lasso, catvars, output_type = "chf")
-pdplot(exper_lasso, catvars, output_type = "risk")
-
-
-# 单样本预测分解
-shap4one(exper_lasso, traindatax[1,], output_type = "survival")
-shap4one(exper_lasso, traindatax[1,], output_type = "risk")
-
-# 全局shap
-shap4all_lasso <- survex::model_survshap(
-  exper_lasso,
-  new_observation = traindatax,
-  y_true = traindatay,
-  N = 100,
-  calculation_method = "kernelshap",
-  aggregation_method = "integral",
-  output_type = "risk"
-)
-plot(shap4all_lasso)
-plot(shap4all_lasso, geom = "beeswarm")
-plot(shap4all_lasso, geom = "profile", variable = "nodes")
-plot(shap4all_lasso, geom = "profile", variable = "grade")
-
-# (抽样)汇总计算shap
-sumshap_lasso <- sumshap(
-  exper_lasso, 
-  traindatax, 
-  catvars, 
-  convars, 
-  sampleN=200
-)
-sumshap_lasso$shapvipplot
-sumshap_lasso$shapplotd
-sumshap_lasso$shapplotc
