@@ -9,6 +9,8 @@ library(RCurl)
 filepath <- paste("E:/B_group/data_backup/B_group_sample",".RDS", sep = "")
 pbmc <- readRDS(filepath)
 
+marrow <- CellCycleScoring(pbmc, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE) 
+
 cluster.averages <- AverageExpression(pbmc, group.by="group")
 
 expr<-as.matrix(cluster.averages[["RNA"]])

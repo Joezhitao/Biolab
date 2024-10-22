@@ -14,7 +14,7 @@ DEG <- c("Wilcoxon","limma","edgeR","DESeq2")
 for (i in DEG) {
   data=read.table(paste("TCGA.diff.",i,".txt",sep=""), header=F, sep="\t", check.names=F)
   DEG = data[,1]
-  data=read.table("AR_gene.txt", header=F, sep="\t", check.names=F)
+  data=read.table("Mismatch_Repair_gene.txt", header=F, sep="\t", check.names=F)
   ARG = data[,1]
   
   #画图
@@ -54,7 +54,7 @@ head(final_data)
 
 rt <- final_data
 #0.05,0.01,0.001
-p.value = 0.01
+p.value = 0.05
 #查找预后相关的基因
 outTab=data.frame()
 for(i in colnames(rt[,3:ncol(rt)])){
