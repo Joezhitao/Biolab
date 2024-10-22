@@ -1,7 +1,7 @@
 
 #加载
 library(GEOquery)
-
+rm(list = ls())
 #设置工作目录
 setwd("E:/CRC_model/GEO")
 
@@ -41,7 +41,7 @@ pd <- pd[!is.na(pd$time), ]
 # 查看处理后的结果
 head(pd$time)
 nrow(pd)
-
+colnames(pd)
 # 只保留 'time' 和 'status' 列
 pd <- pd[, c('time', 'status')]
 

@@ -62,7 +62,7 @@ write.table(geo_data, file="GEO.txt", sep="\t", quote=F, row.names=F)
 #合并TCGA与临床数据
 #读取输入文件
 data=read.table("TCGA.txt", header=T, sep="\t", check.names=F,row.names = 1)
-data=read.table("TCGA_CRC_TPM.txt", header=T, sep="\t", check.names=F,row.names = 1)
+#data=read.table("TCGA_CRC_TPM.txt", header=T, sep="\t", check.names=F,row.names = 1)
 # 将列名中的 "." 替换为 "-"
 colnames(data) = gsub("\\.", "-", colnames(data))
 #与临床数据合并
@@ -97,7 +97,7 @@ write.table(rt, file="TCGA_cli.txt", sep="\t", quote=F, row.names=T)
 A <- read.table("TCGA_cli.txt", header=T, sep="\t", check.names=F, row.names=1)
 ################################################################################
 #合并GEO与临床数据
-#pd是已经处理好的临床数据，只要time和stattus
+#pd是已经处理好的临床数据，只要time和status
 # 转置表达矩阵
 dat <- geo_data
 dat_t <- t(dat)
